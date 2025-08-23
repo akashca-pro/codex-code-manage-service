@@ -15,7 +15,7 @@ export interface ICreateSubmissionInputDTO {
     problemId : string;
     userId : string;
     battleId? : string;
-    country? : CountryCode;
+    country? : string;
     title : string;
     language : GrpcLanguageEnum;
     userCode : string;
@@ -34,7 +34,7 @@ export interface ICreateSubmissionRequestDTO {
     battleId? : string;
     country? : string;
     title : string;
-    language : Language;
+    language : GrpcLanguageEnum;
     userCode : string;
-    difficulty : Difficulty
+    difficulty : GrpcDifficultyEnum;
 }

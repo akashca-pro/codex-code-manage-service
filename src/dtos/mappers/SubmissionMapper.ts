@@ -8,25 +8,9 @@ import { Language } from "@/enums/Language.enum";
 import { isValidCountry } from "@/utils/countryCheck";
 import { SubmissionErrorType } from "@/enums/Error/submissionErrorType.enum";
 
-class SubmissionMapper {
+export class SubmissionMapper {
 
-    static toSubmissionExecService(body : ICreateSubmissionInputDTO ) : ICreateSubmissionRequestDTO {
-        
-        if(body.country && !isValidCountry(body.country)){
-            throw new Error(SubmissionErrorType.InvalidCountryCode)
-        }
 
-        return {
-            problemId : body.problemId,
-            title : body.title,
-            userId : body.userId,
-            ...(body.battleId ? { battleId : body.battleId } : {}),
-            ...(body.country ? { country : body.country } : {}),
-            userCode : body.userCode,
-            difficulty : this._mapGrpcDifficultyEnum(body.difficulty),
-            language : this._mapGrpcLanguageEnum(body.language),
-        }
-    }
 
     private static _mapGrpcDifficultyEnum(difficulty : GrpcDifficultyEnum) : Difficulty {
         if (difficulty === 1) {

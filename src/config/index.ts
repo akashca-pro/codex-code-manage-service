@@ -3,6 +3,7 @@ dotenv.config();
 
 interface Config {
     REDIS_URL : string;
+    NATS_URL : string;
     SERVICE_NAME : string;
     GRPC_SERVER_URL : string;
     METRICS_PORT : number;
@@ -13,6 +14,7 @@ interface Config {
 
 export const config : Config = {
     REDIS_URL : process.env.REDIS_URL || '',
+    NATS_URL : process.env.NATS_URL || '',
     GRPC_SERVER_URL : process.env.GRPC_SERVER_URL || '',
     METRICS_PORT : Number(process.env.METRICS_PORT) || 9102,
     SERVICE_NAME : process.env.SERVICE_NAME || 'PROBLEM_SERVICE',
