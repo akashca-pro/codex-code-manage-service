@@ -2,10 +2,10 @@
 const TYPES = {
 
     // Providers
-    IMessagingService : Symbol.for("IMessagingService"),
+    IMessageProvider : Symbol.for("IMessageProvider"),
 
     // Grpc client
-    IProblemService : Symbol.for("IProblemService"),
+    IGrpcProblemService : Symbol.for("IGrpcProblemService"),
 
 }
 

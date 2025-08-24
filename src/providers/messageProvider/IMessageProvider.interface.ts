@@ -5,7 +5,7 @@ import { NatsSubject } from "@/config/nats/natsSubjects";
  * 
  * @interface
  */
-export interface IMessagingService {
+export interface IMessageProvider {
     connect(): Promise<void>;
     publish<T>(subject: NatsSubject, payload: T): void;
     subscribe<T>(subject: NatsSubject, callback: (data: T) => void): void;

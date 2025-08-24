@@ -1,8 +1,8 @@
-import { IMessagingService } from "@/providers/messagingService/messagingService.interface";
+import { IMessageProvider } from "@/providers/messageProvider/IMessageProvider.interface";
 import { natsManager } from "@/config/nats";
-import { NatsSubject } from "./natsSubjects";
+import { NatsSubject } from "../../config/nats/natsSubjects";
 
-export class NatsMessagingService implements IMessagingService {
+export class NatsMessageProvider implements IMessageProvider {
     public async connect(): Promise<void> {
         return natsManager.connect();
     }

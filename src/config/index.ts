@@ -10,6 +10,7 @@ interface Config {
     SUBMISSION_DETAILS_CACHE_EXPIRY : number;
     DEFAULT_GRPC_TIMEOUT : number;
     GRPC_PROBLEM_SERVICE_URL : string;
+    WSS_PORT : number;
 }
 
 export const config : Config = {
@@ -21,4 +22,5 @@ export const config : Config = {
     SUBMISSION_DETAILS_CACHE_EXPIRY : Number(process.env.SUBMISSION_DETAILS_CACHE_EXPIRY) || 300,
     DEFAULT_GRPC_TIMEOUT : Number(process.env.DEFAULT_GRPC_TIMEOUT),
     GRPC_PROBLEM_SERVICE_URL : process.env.GRPC_PROBLEM_SERVICE_URL!,
+    WSS_PORT : Number(process.env.WSS_PORT),
 }

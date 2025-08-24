@@ -4,7 +4,7 @@ import { IGrpcProblemService } from "@/infra/grpc/ProblemService.interface";
 import TYPES from "@/config/inversify/types";
 import { ICreateSubmissionRequestDTO } from "@/dtos/CreateSubmission.dto";
 import { ResponseDTO } from "@/dtos/Response.dto";
-import { IMessagingService } from "@/providers/messagingService/messagingService.interface";
+import { IMessageProvider } from "@/providers/messageProvider/IMessageProvider.interface";
 import { CodeSanitizer } from "@/utils/codeSanitize";
 import { Mapper } from "@/enums/Mapper";
 
@@ -18,17 +18,17 @@ import { Mapper } from "@/enums/Mapper";
 export class SubmitCodeExecService implements ISubmitCodeExecService {
 
     #_problemGrpcClient : IGrpcProblemService
-    #_messagingService : IMessagingService
+    #_messageProvider : IMessageProvider
 
     constructor(
-        @inject(TYPES.IProblemService)
+        @inject(TYPES.IGrpcProblemService)
         problemGrpcClient : IGrpcProblemService,
 
-        @inject(TYPES.IMessagingService)
-        messagingService : IMessagingService
+        @inject(TYPES.IMessageProvider)
+        messagingService : IMessageProvider
     ){
         this.#_problemGrpcClient = problemGrpcClient
-        this.#_messagingService = messagingService
+        this.#_messageProvider = messagingService
     }
 
     async execute(data: ICreateSubmissionRequestDTO): Promise<ResponseDTO> {
@@ -51,7 +51,7 @@ export class SubmitCodeExecService implements ISubmitCodeExecService {
 
         const submission = await this.#_problemGrpcClient.createSubmission(data);
 
-        this.#_messagingService.publish('submission.jobs',{
+        this.#_messageProvider.publish('submission.jobs',{
             submissionId : submission.Id,
             userCode : data.userCode,
             language : data.language,
