@@ -10,6 +10,11 @@ import { SubmitCodeExecPublisherService } from '@/services/submitCodeExecPublish
 import { ICacheProvider } from '@/providers/cacheProvider/ICacheProvider.interface';
 import { RedisCacheProvider } from '@/providers/cacheProvider/RedisCacheProvider';
 import { SubmitCodeExecListener } from '@/services/submitCodeExecListener.service';
+import { IRunCodeExecPublisherService } from '@/services/interface/runCodeExecPublisher.service.interface';
+import { RunCodeExecPublisherService } from '@/services/runCodeExecPublisher.service';
+import { IRunCodeExecListenerService } from '@/services/interface/runCodeExecListener.service.interface';
+import { RunCodeExecListenerService } from '@/services/runCodeExecListener.service';
+import { ISubmitCodeExecListenerService } from '@/services/interface/submitCodeExecListener.service.interface';
 
 const container = new Container();
 
@@ -30,10 +35,16 @@ container
 container   
     .bind<ISubmitCodeExecPublisherService>(TYPES.ISubmitCodeExecPublisherService)
     .to(SubmitCodeExecPublisherService);
+container
+    .bind<IRunCodeExecPublisherService>(TYPES.IRunCodeExecPublisherService)
+    .to(RunCodeExecPublisherService);
 
 // Listener services
 container
-    .bind<SubmitCodeExecListener>(TYPES.SubmitCodeExecListener)
+    .bind<ISubmitCodeExecListenerService>(TYPES.ISubmitCodeExecListenerService)
     .to(SubmitCodeExecListener);
+container
+    .bind<IRunCodeExecListenerService>(TYPES.IRunCodeExecListenerService)
+    .to(RunCodeExecListenerService);
 
 export default container

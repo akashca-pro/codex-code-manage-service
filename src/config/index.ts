@@ -11,6 +11,7 @@ interface Config {
     DEFAULT_GRPC_TIMEOUT : number;
     GRPC_PROBLEM_SERVICE_URL : string;
     WSS_PORT : number;
+    NATS_IDEMPOTENCY_KEY_EXPIRY : number;
 }
 
 export const config : Config = {
@@ -23,4 +24,5 @@ export const config : Config = {
     DEFAULT_GRPC_TIMEOUT : Number(process.env.DEFAULT_GRPC_TIMEOUT),
     GRPC_PROBLEM_SERVICE_URL : process.env.GRPC_PROBLEM_SERVICE_URL!,
     WSS_PORT : Number(process.env.WSS_PORT),
+    NATS_IDEMPOTENCY_KEY_EXPIRY : Number(process.env.NATS_IDEMPOTENCY_KEY_EXPIRY),
 }

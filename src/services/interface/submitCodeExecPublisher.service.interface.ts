@@ -2,7 +2,7 @@ import { ICreateSubmissionRequestDTO } from "@/dtos/CreateSubmission.dto";
 import { ResponseDTO } from "@/dtos/Response.dto";
 
 /**
- * Interface representing the structure of the submit execution publisher service.
+ * Interface representing the structure of the submit code execution publisher service.
  * 
  * @interface
  */

@@ -87,6 +87,14 @@ export class SubmitCodeExecListener implements ISubmitCodeExecListenerService {
                         data
                     );
 
+                    await this.#_cacheProvider.set(
+                        idempotencyKey,
+                        '1',
+                        config.NATS_IDEMPOTENCY_KEY_EXPIRY
+                    );
+
+                    msg.ack();
+
                 } catch (error) {
                     msg.nak();
                 }
