@@ -1,0 +1,7 @@
+
+export const NatsDurableNames = {
+
+    CODE_MANAGER_SUB_NORMAL : 'CM_SUBMISSION_NORMAL',
+    CODE_MANAGER_SUB_BATTLE : 'CM_SUBMISSION_BATTLE'
+
+} as const

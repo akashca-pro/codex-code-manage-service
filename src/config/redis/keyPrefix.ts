@@ -1,4 +1,5 @@
 
 export const REDIS_PREFIX = {
-    SUBMISSION_CACHE : 'submission:details:'
+    SUBMISSION_NORMAL_CACHE : 'submission:normal',
+    NATS_IDEMPOTENCY_KEY : 'processed'
 } as const

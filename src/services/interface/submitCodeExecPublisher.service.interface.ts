@@ -2,11 +2,11 @@ import { ICreateSubmissionRequestDTO } from "@/dtos/CreateSubmission.dto";
 import { ResponseDTO } from "@/dtos/Response.dto";
 
 /**
- * Interface representing the structure of the submit execution service.
+ * Interface representing the structure of the submit execution publisher service.
  * 
  * @interface
  */
-export interface ISubmitCodeExecService {
+export interface ISubmitCodeExecPublisherService {
     
     /**
      * Executes the submit code execution service.

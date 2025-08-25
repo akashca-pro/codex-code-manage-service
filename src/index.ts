@@ -4,14 +4,21 @@ import { globalErrorHandler } from '@/utils/errorHandler';
 import { config } from '@/config';
 import { startMetricsServer } from '@/config/metrics/metrics-server';
 import { startGrpcServer } from './transport/grpc/server';
+import container from './config/inversify/container';
+import { IMessageProvider } from './providers/messageProvider/IMessageProvider.interface';
+import TYPES from './config/inversify/types';
 
 const app = express();
 
 // Global error handling.
 app.use(globalErrorHandler);
 
-const startServer = () => {
+const startServer = async () => {
     try {
+        // Start NATS client to server
+        const messageProvider = container.get<IMessageProvider>(TYPES.IMessageProvider);
+        await messageProvider.connect()
+
         // Start prometheus metrics server.
         startMetricsServer(config.METRICS_PORT);
 
@@ -24,4 +31,7 @@ const startServer = () => {
     }
 }
 
-startServer();
+startServer().catch((err)=>{
+    logger.error(`Fatal startup error:`, err);
+    process.exit(1);
+});

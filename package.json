@@ -7,14 +7,15 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write './src/**/*.{ts,tsx,js,json,md}'",
     "dev": "tsx watch src/index.ts",
-    "build": "tsup src/index.ts --format cjs"
+    "build": "tsup src/index.ts --format cjs",
+    "start:listener" : "tsx src/workers/submitCodeExecListenerWorker.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@akashcapro/codex-shared-utils": "^0.3.58",
+    "@akashcapro/codex-shared-utils": "^0.3.59",
     "@bufbuild/protobuf": "^2.6.3",
     "@grpc/grpc-js": "^1.13.4",
     "@types/ws": "^8.18.1",

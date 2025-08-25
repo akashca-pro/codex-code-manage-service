@@ -1,7 +1,9 @@
 import { 
     connect, NatsConnection, JSONCodec, Subscription, Status, JetStreamClient, 
     JetStreamManager, StorageType, 
-    AckPolicy} from 'nats';
+    AckPolicy,
+    millis,
+    JsMsg} from 'nats';
 import { config } from '..';
 import logger from '@akashcapro/codex-shared-utils/dist/utils/logger';
 import { NatsSubject } from './natsSubjects';
@@ -48,7 +50,10 @@ class NatsManager {
         }
     }
 
-    public publish<T>(subject : NatsSubject, jobPayload: T): void {
+    public publish<T>(
+        subject : string, 
+        jobPayload: T
+    ): void {
         if (!this.natsConnection) {
             logger.error('NATS connection not available to publish job.');
             return;
@@ -57,7 +62,10 @@ class NatsManager {
         logger.info(`Published message to subject: ${subject}`);
     }
 
-    public subscribe<T>(subject: NatsSubject, callback: (data: T) => void): void {
+    public subscribe<T>(
+        subject: string, 
+        callback: (data: T) => void
+    ): void {
         if (!this.natsConnection) {
             logger.error('NATS connection not available to subscribe.');
             return;
@@ -73,7 +81,10 @@ class NatsManager {
         })();
     }
 
-    public async ensureStream(streamName : string, subjects : string[]) : Promise<void>{
+    public async ensureStream(
+        streamName : string, 
+        subjects : string[]
+    ) : Promise<void>{
         if(!this.jsm){
             logger.error('JetStream Manager not initialized.');
             return;
@@ -86,48 +97,47 @@ class NatsManager {
         }
     }
 
-    public async publishToStream<T>(subject : NatsSubject, payload : T) : Promise<void> {
+    public async publishToStream<T>(
+        subject : string,
+        streamName : string, 
+        payload : T
+    ) : Promise<void> {
         if (!this.js) {
             logger.error('JetStream client not initialized.');
             return;
         }
+        await this.ensureStream(streamName,[subject]);
         await this.js.publish(subject, this.jsonCodec.encode(payload));
         logger.info(`Published JetStream message to ${subject}`);
     } 
 
     public async subscribeToStream<T>(
-        subject : NatsSubject,
+        subject : string,
         streamName : string, 
         durableName : string, 
-        callback : (data : T) => void 
+        callback: (decoded: T, rawMsg : JsMsg) => Promise<void>
     ) : Promise<void> {
         if (!this.jsm || !this.js) {
             logger.error('JetStream client not initialized.');
             return;
         }
 
-        const jc = JSONCodec();
+        await this.ensureStream(streamName, [subject]);
 
-        await this.jsm.consumers.add(
-            await this.jsm.streams.find(subject),
-            {
+        try {
+            await this.jsm.consumers.add(streamName, {
             durable_name: durableName,
-            filter_subject: subject,
-            ack_policy: AckPolicy.Explicit
+            filter_subject: subject,      
+            ack_policy: AckPolicy.Explicit,
+            ack_wait: millis(30_000),     
+            max_deliver: -1               
+            // deliver_policy: 'new'       
+            });
+        } catch (e: any) {
+            if (!/already in use|exists/i.test(String(e?.message))) {
+                throw e;
             }
-        );
-
-        this.ensureStream(streamName, [subject]);
-
-        this.jsm.consumers.add(streamName,{
-            durable_name : durableName,
-            filter_subject : subject,
-            ack_policy : AckPolicy.Explicit,
-            ack_wait : 30_000_000_000,
-            max_deliver : -1
-        })
-
-
+        }
 
         const consumer = await this.js.consumers.get(streamName, durableName);
         const messages = await consumer.consume({ max_messages: 0 });
@@ -136,22 +146,21 @@ class NatsManager {
 
         (async () => {
             for await (const m of messages) {
-            try {
-                const decoded = jc.decode(m.data) as T;
-                callback(decoded);
-                m.ack();
-            } catch (err) {
-                logger.error(`Error processing JetStream message on ${subject}`, err);
-            }
+                try {
+                    const decoded = this.jsonCodec.decode(m.data) as T;
+                    callback(decoded, m);
+                } catch (err) {
+                    logger.error(`Error processing JetStream message on ${subject}`, err);
+                    m.nak();
+                }
             }
         })();
-
     }
 
     private async handleStatusUpdates(): Promise<void> {
         if (!this.natsConnection) return;
         for await (const status of this.natsConnection.status()) {
-            console.info(`NATS status update: ${(status as Status).type}`);
+            logger.info(`NATS status update: ${(status as Status).type}`);
         }
     }
 }

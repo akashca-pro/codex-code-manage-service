@@ -1,5 +1,5 @@
 import { inject, injectable } from "inversify";
-import { ISubmitCodeExecService } from "./interface/submitCodeExec.service.interface";
+import { ISubmitCodeExecPublisherService } from "./interface/submitCodeExecPublisher.service.interface";
 import { IGrpcProblemService } from "@/infra/grpc/ProblemService.interface";
 import TYPES from "@/config/inversify/types";
 import { ICreateSubmissionRequestDTO } from "@/dtos/CreateSubmission.dto";
@@ -7,15 +7,17 @@ import { ResponseDTO } from "@/dtos/Response.dto";
 import { IMessageProvider } from "@/providers/messageProvider/IMessageProvider.interface";
 import { CodeSanitizer } from "@/utils/codeSanitize";
 import { Mapper } from "@/enums/Mapper";
+import { NatsSubjectsPublish } from "@/config/nats/natsSubjects";
+import { NatsStreams } from "@/config/nats/natsStreams";
 
 /**
- * Implementation of the submit code execution service.
+ * Implementation of the submit code execution publisher service.
  * 
  * @class
- * @implements {ISubmitCodeExecService}
+ * @implements {ISubmitCodeExecPublisherService}
  */
 @injectable()
-export class SubmitCodeExecService implements ISubmitCodeExecService {
+export class SubmitCodeExecPublisherService implements ISubmitCodeExecPublisherService {
 
     #_problemGrpcClient : IGrpcProblemService
     #_messageProvider : IMessageProvider
@@ -51,12 +53,19 @@ export class SubmitCodeExecService implements ISubmitCodeExecService {
 
         const submission = await this.#_problemGrpcClient.createSubmission(data);
 
-        this.#_messageProvider.publish('submission.jobs',{
+        const jobPayload = {
             submissionId : submission.Id,
             userCode : data.userCode,
             language : data.language,
+            userId : data.userId,
             testCases : problem.testcaseCollection?.submit
-        })
+        }
+
+        await this.#_messageProvider.publishToStream(
+            NatsSubjectsPublish.SUBMISSION_JOB(jobPayload.submissionId),
+            NatsStreams.SUBMISSION_JOBS,
+            jobPayload
+        );
 
         return {
             data : submission.Id,
