@@ -5,6 +5,9 @@ export const NatsStreams = {
     SUBMISSION_RESULTS : 'SUBMISSION_RESULTS',
 
     RUN_JOBS : 'RUN_JOBS',
-    RUN_RESULTS : 'RUN_RESULTS'
+    RUN_RESULTS : 'RUN_RESULTS',
+
+    CUSTOM_JOBS : 'CUSTOM_JOBS',
+    CUSTOM_RESULTS : 'CUSTOM_RESULTS',
 
 } as const

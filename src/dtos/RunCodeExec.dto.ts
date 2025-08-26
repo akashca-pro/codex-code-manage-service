@@ -1,4 +1,3 @@
-import { Language } from "@/enums/Language.enum";
 import { 
         Language as GrpcLanguageEnum,
         TestCase, 
@@ -10,7 +9,7 @@ import {
  * 
  * @interface
  */
-export interface IRunCodeExecInputDTO {
+export interface IRunCodeExecRequestDTO {
     problemId : string;
     userId : string;
     language : GrpcLanguageEnum

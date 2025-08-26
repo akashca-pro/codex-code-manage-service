@@ -1,5 +1,5 @@
 import { ResponseDTO } from "@/dtos/Response.dto";
-import { IRunCodeExecInputDTO } from "@/dtos/RunCodeExec.dto";
+import { IRunCodeExecRequestDTO } from "@/dtos/RunCodeExec.dto";
 
 /**
  * Interface representing the structure of the run code execution publisher service.
@@ -12,8 +12,8 @@ export interface IRunCodeExecPublisherService {
      * Executes the run code execution service.
      * 
      * @async
-     * @param {IRunCodeExecInputDTO} data - The data for run code for sample testcase.
+     * @param {IRunCodeExecRequestDTO} data - The data for run code for sample testcase.
      */
-    execute(data : IRunCodeExecInputDTO) : Promise<ResponseDTO>
+    execute(data : IRunCodeExecRequestDTO) : Promise<ResponseDTO>
 
 }

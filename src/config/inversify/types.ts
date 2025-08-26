@@ -11,6 +11,7 @@ const TYPES = {
     // Publisher services
     ISubmitCodeExecPublisherService : Symbol.for("ISubmitCodeExecPublisherService"),
     IRunCodeExecPublisherService : Symbol.for("IRunCodeExecPublisherService"),
+    ICustomCodeExecPublisherService : Symbol.for("ICustomCodeExecPublisherService"),
     
     // Listener services
     ISubmitCodeExecListenerService : Symbol.for("ISubmitCodeExecListenerService"),

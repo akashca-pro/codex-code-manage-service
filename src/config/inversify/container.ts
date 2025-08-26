@@ -15,6 +15,8 @@ import { RunCodeExecPublisherService } from '@/services/runCodeExecPublisher.ser
 import { IRunCodeExecListenerService } from '@/services/interface/runCodeExecListener.service.interface';
 import { RunCodeExecListenerService } from '@/services/runCodeExecListener.service';
 import { ISubmitCodeExecListenerService } from '@/services/interface/submitCodeExecListener.service.interface';
+import { ICustomCodeExecPublisherService } from '@/services/interface/customCodeExecPublisher.service.interface';
+import { CustomCodeExecPublishService } from '@/services/customCodeExecPublisher.service';
 
 const container = new Container();
 
@@ -38,6 +40,9 @@ container
 container
     .bind<IRunCodeExecPublisherService>(TYPES.IRunCodeExecPublisherService)
     .to(RunCodeExecPublisherService);
+container
+    .bind<ICustomCodeExecPublisherService>(TYPES.ICustomCodeExecPublisherService)
+    .to(CustomCodeExecPublishService);
 
 // Listener services
 container

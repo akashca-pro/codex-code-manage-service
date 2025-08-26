@@ -7,4 +7,6 @@ export const NatsDurableNames = {
     CODE_MANAGER_RUN_NORMAL : 'CM_RUN_NORMAL',
     CODE_MANAGER_RUN_BATTLE : 'CM_RUN_BATTLE',
 
+    CODE_MANAGER_CUSTOM_CODE : 'CM_CUSTOM_CODE',
+
 } as const

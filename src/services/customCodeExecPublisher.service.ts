@@ -1,23 +1,22 @@
-import { IMessageProvider } from "@/providers/messageProvider/IMessageProvider.interface";
-import { IRunCodeExecPublisherService } from "./interface/runCodeExecPublisher.service.interface";
 import { inject, injectable } from "inversify";
+import { ICustomCodeExecPublisherService } from "./interface/customCodeExecPublisher.service.interface";
+import { IMessageProvider } from "@/providers/messageProvider/IMessageProvider.interface";
 import TYPES from "@/config/inversify/types";
+import { ICustomCodeExecRequestDTO } from "@/dtos/CompileCodeExec.dto";
 import { ResponseDTO } from "@/dtos/Response.dto";
-import { IRunCodeExecRequestDTO } from "@/dtos/RunCodeExec.dto";
 import { CodeSanitizer } from "@/utils/codeSanitize";
 import { Mapper } from "@/enums/Mapper";
 import { NatsSubjectsPublish } from "@/config/nats/natsSubjects";
 import { NatsStreams } from "@/config/nats/natsStreams";
 
-
 /**
- * Implementation of the run code execution publisher service.
+ * Implementation of the custom code execution publisher service.
  * 
  * @class
- * @implements {IRunCodeExecPublisherService}
+ * @implements {ICustomCodeExecPublisherService}
  */
 @injectable()
-export class RunCodeExecPublisherService implements IRunCodeExecPublisherService {
+export class CustomCodeExecPublishService implements ICustomCodeExecPublisherService {
 
     #_messageProvider : IMessageProvider
 
@@ -28,7 +27,7 @@ export class RunCodeExecPublisherService implements IRunCodeExecPublisherService
         this.#_messageProvider = messageProvider
     }
 
-    async execute(data: IRunCodeExecRequestDTO): Promise<ResponseDTO> {
+    async execute(data: ICustomCodeExecRequestDTO): Promise<ResponseDTO> {
         
         const sanitizer = new CodeSanitizer();
 
@@ -44,20 +43,17 @@ export class RunCodeExecPublisherService implements IRunCodeExecPublisherService
             }
         }
 
-        const jobPayload = {
-            ...data,
-            language
-        };
-
         await this.#_messageProvider.publishToStream(
-            NatsSubjectsPublish.RUN_JOB(jobPayload.userId),
-            NatsStreams.RUN_JOBS,
-            jobPayload
-        );
+            NatsSubjectsPublish.CUSTOM_JOB(data.tempId),
+            NatsStreams.CUSTOM_JOBS,
+            data
+        )
 
         return {
             data : null,
-            success : true
+            success : true,
         }
-    }   
+    }
 }
+
+
