@@ -3,12 +3,12 @@ import container from '@/config/inversify/container';
 import TYPES from '@/config/inversify/types';
 import logger from '@akashcapro/codex-shared-utils/dist/utils/logger';
 import { IMessageProvider } from '@/providers/messageProvider/IMessageProvider.interface';
-import { IRunCodeExecListenerService } from '@/services/interface/runCodeExecListener.service.interface';
+import { ICustomCodeExecListenerService } from '@/services/interface/customCodeExecListener.service.interface';
 
 async function main(){
     const messageProvider = container.get<IMessageProvider>(TYPES.IMessageProvider);
-    const listener = container.get<IRunCodeExecListenerService>(TYPES.IRunCodeExecListenerService);
-    logger.info('[runCodeExecListener] Starting worker. . .');
+    const listener = container.get<ICustomCodeExecListenerService>(TYPES.ICustomCodeExecListenerService);
+    logger.info('[customCodeListener] Starting worker. . .');
     await messageProvider.connect();
     await listener.execute(); 
 }

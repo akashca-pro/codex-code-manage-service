@@ -16,6 +16,7 @@ const TYPES = {
     // Listener services
     ISubmitCodeExecListenerService : Symbol.for("ISubmitCodeExecListenerService"),
     IRunCodeExecListenerService : Symbol.for("IRunCodeExecListenerService"),
+    ICustomCodeExecListenerService : Symbol.for("ICustomCodeExecListenerService"),
 
 }
 
