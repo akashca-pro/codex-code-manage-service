@@ -5,7 +5,7 @@ const TYPES = {
     IMessageProvider : Symbol.for("IMessageProvider"),
     ICacheProvider : Symbol.for("ICacheProvider"),
 
-    // Grpc client
+    // Grpc client calls
     IGrpcProblemService : Symbol.for("IGrpcProblemService"),
 
     // Publisher services
@@ -17,6 +17,11 @@ const TYPES = {
     ISubmitCodeExecListenerService : Symbol.for("ISubmitCodeExecListenerService"),
     IRunCodeExecListenerService : Symbol.for("IRunCodeExecListenerService"),
     ICustomCodeExecListenerService : Symbol.for("ICustomCodeExecListenerService"),
+
+    // Grpc server handlers
+    GrpcSubmitCodeExecHandler : Symbol.for("GrpcSubmitCodeExecHandler"),
+    GrpcRunCodeExecHandler : Symbol.for("GrpcRunCodeExecHandler"),
+    GrpcCustomCodeExecHandler : Symbol.for("GrpcCustomCodeExecHandler"),
 
 }
 

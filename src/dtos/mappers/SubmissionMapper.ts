@@ -1,16 +1,25 @@
 import { 
         Difficulty as GrpcDifficultyEnum,
-        Language as GrpcLanguageEnum, 
+        Language as GrpcLanguageEnum 
   } from "@akashcapro/codex-shared-utils/dist/proto/compiled/gateway/problem";
-import { ICreateSubmissionInputDTO, ICreateSubmissionRequestDTO } from "../CreateSubmission.dto";
+import { SubmitCodeExecRequest } from '@akashcapro/codex-shared-utils/dist/proto/compiled/internal/code_manage'
+import { ICreateSubmissionRequestDTO } from "../CreateSubmission.dto";
 import { Difficulty } from "@/enums/Difficulty.enum";
 import { Language } from "@/enums/Language.enum";
-import { isValidCountry } from "@/utils/countryCheck";
-import { SubmissionErrorType } from "@/enums/Error/submissionErrorType.enum";
+
 
 export class SubmissionMapper {
 
-
+    static toCreateSubmissionDTO (
+        data : SubmitCodeExecRequest, 
+        addons : {title : string, difficulty : GrpcDifficultyEnum} 
+    ) : ICreateSubmissionRequestDTO {
+        return {
+            ...data,
+            title : addons.title,
+            difficulty : addons.difficulty
+        }
+    }
 
     private static _mapGrpcDifficultyEnum(difficulty : GrpcDifficultyEnum) : Difficulty {
         if (difficulty === 1) {

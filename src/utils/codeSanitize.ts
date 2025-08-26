@@ -146,7 +146,7 @@ export class CodeSanitizer {
         if (userCode.length > CodeSanitizer.MAX_CODE_LENGTH) {
             return {
                 isValid: false,
-                error: `Code length exceeds maximum limit of ${CodeSanitizer.MAX_CODE_LENGTH} characters.`,
+                error: `Syntax Error: Code length exceeds maximum limit of ${CodeSanitizer.MAX_CODE_LENGTH} characters.`,
             };
         }
 
@@ -156,7 +156,7 @@ export class CodeSanitizer {
             if (violation) {
                 return {
                     isValid: false,
-                    error: `Prohibited operation detected: ${category.description} (pattern: ${violation.source})`,
+                    error: `Syntax Error: Prohibited operation detected: ${category.description} (pattern: ${violation.source})`,
                 };
             }
         }
@@ -166,7 +166,7 @@ export class CodeSanitizer {
         if (!langPatterns) {
             return {
                 isValid: false,
-                error: `Unsupported language for sanitization: ${language}`,
+                error: `Syntax Error: Unsupported language for sanitization: ${language}`,
             };
         }
 
@@ -175,7 +175,7 @@ export class CodeSanitizer {
             if (violation) {
                 return {
                     isValid: false,
-                    error: `Prohibited ${language} operation detected: ${category.description} (pattern: ${violation.source})`,
+                    error: `Syntax Error: Prohibited ${language} operation detected: ${category.description} (pattern: ${violation.source})`,
                 };
             }
         }

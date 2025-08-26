@@ -1,5 +1,5 @@
-import { ICreateSubmissionRequestDTO } from "@/dtos/CreateSubmission.dto";
 import { ResponseDTO } from "@/dtos/Response.dto";
+import { SubmitCodeExecRequest } from "@akashcapro/codex-shared-utils/dist/proto/compiled/internal/code_manage";
 
 /**
  * Interface representing the structure of the submit code execution publisher service.
@@ -12,8 +12,8 @@ export interface ISubmitCodeExecPublisherService {
      * Executes the submit code execution service.
      * 
      * @async
-     * @param {ICreateSubmissionRequestDTO} data - The data from user
+     * @param {SubmitCodeExecRequest} data - The data from user
      */
-    execute(data : ICreateSubmissionRequestDTO) : Promise<ResponseDTO>
+    execute(data : SubmitCodeExecRequest) : Promise<ResponseDTO>
 
 }

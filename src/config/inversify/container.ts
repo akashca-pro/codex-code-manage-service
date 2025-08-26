@@ -19,6 +19,9 @@ import { ICustomCodeExecPublisherService } from '@/services/interface/customCode
 import { CustomCodeExecPublishService } from '@/services/customCodeExecPublisher.service';
 import { ICustomCodeExecListenerService } from '@/services/interface/customCodeExecListener.service.interface';
 import { CustomCodeExecListenerService } from '@/services/customCodeExecListener.service';
+import { GrpcCustomCodeExecHandler } from '@/transport/grpc/handlers/CustomCodeExecHandler';
+import { GrpcRunCodeExecHandler } from '@/transport/grpc/handlers/RunCodeExecHandler';
+import { GrpcSubmitCodeExecHandler } from '@/transport/grpc/handlers/SubmitCodeExecHandler';
 
 const container = new Container();
 
@@ -56,5 +59,16 @@ container
 container
     .bind<ICustomCodeExecListenerService>(TYPES.ICustomCodeExecListenerService)
     .to(CustomCodeExecListenerService);
+
+// Grpc server handlers
+container
+    .bind<GrpcSubmitCodeExecHandler>(TYPES.GrpcSubmitCodeExecHandler)
+    .to(GrpcSubmitCodeExecHandler);
+container
+    .bind<GrpcRunCodeExecHandler>(TYPES.GrpcRunCodeExecHandler)
+    .to(GrpcRunCodeExecHandler);
+container
+    .bind<GrpcCustomCodeExecHandler>(TYPES.GrpcCustomCodeExecHandler)
+    .to(GrpcCustomCodeExecHandler);
 
 export default container

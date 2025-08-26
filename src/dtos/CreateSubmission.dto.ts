@@ -12,7 +12,6 @@ export interface ICreateSubmissionRequestDTO {
 
     problemId : string;
     userId : string;
-    battleId? : string;
     country? : string;
     title : string;
     language : GrpcLanguageEnum;

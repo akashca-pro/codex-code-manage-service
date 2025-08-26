@@ -2,13 +2,15 @@ import { inject, injectable } from "inversify";
 import { ISubmitCodeExecPublisherService } from "./interface/submitCodeExecPublisher.service.interface";
 import { IGrpcProblemService } from "@/infra/grpc/ProblemService.interface";
 import TYPES from "@/config/inversify/types";
-import { ICreateSubmissionRequestDTO } from "@/dtos/CreateSubmission.dto";
 import { ResponseDTO } from "@/dtos/Response.dto";
 import { IMessageProvider } from "@/providers/messageProvider/IMessageProvider.interface";
 import { CodeSanitizer } from "@/utils/codeSanitize";
 import { Mapper } from "@/enums/Mapper";
 import { NatsSubjectsPublish } from "@/config/nats/natsSubjects";
 import { NatsStreams } from "@/config/nats/natsStreams";
+import { SubmissionMapper } from "@/dtos/mappers/SubmissionMapper";
+import { SubmitCodeExecRequest } from "@akashcapro/codex-shared-utils/dist/proto/compiled/internal/code_manage";
+import { ProblemErrorType } from "@/enums/Error/ProblemServiceErrorType.enum";
 
 /**
  * Implementation of the submit code execution publisher service.
@@ -33,7 +35,7 @@ export class SubmitCodeExecPublisherService implements ISubmitCodeExecPublisherS
         this.#_messageProvider = messagingService
     }
 
-    async execute(data: ICreateSubmissionRequestDTO): Promise<ResponseDTO> {
+    async execute(data: SubmitCodeExecRequest): Promise<ResponseDTO> {
 
         const sanitizer = new CodeSanitizer();
 
@@ -51,7 +53,20 @@ export class SubmitCodeExecPublisherService implements ISubmitCodeExecPublisherS
         
         const problem = await this.#_problemGrpcClient.getProblem({ Id : data.problemId });
 
-        const submission = await this.#_problemGrpcClient.createSubmission(data);
+        if(!problem){
+            return {
+                data : null,
+                success : false,
+                errorMessage : ProblemErrorType.ProblemNotFound
+            }
+        }
+
+        const submission = await this.#_problemGrpcClient.createSubmission(
+            SubmissionMapper.toCreateSubmissionDTO(
+                data, 
+                { title : problem.title, difficulty : problem.difficulty }
+            )
+        );
 
         const jobPayload = {
             submissionId : submission.Id,
