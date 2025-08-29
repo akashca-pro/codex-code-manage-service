@@ -6,7 +6,6 @@ import {
     JsMsg} from 'nats';
 import { config } from '..';
 import logger from '@akashcapro/codex-shared-utils/dist/utils/logger';
-import { NatsSubject } from './natsSubjects';
 
 class NatsManager {
     private static _instance: NatsManager;

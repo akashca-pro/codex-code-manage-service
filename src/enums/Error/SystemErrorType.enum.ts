@@ -9,4 +9,8 @@ export enum SystemErrorType {
      */
     InternalServerError = 'Internal Server Error',
 
+    /**
+     * Error type indicating that the request is invalid.
+     */
+    TooManyRequests = 'Too Many Requests',
 }

@@ -1,5 +1,6 @@
 import { ProblemErrorType } from "@/enums/Error/ProblemServiceErrorType.enum";
 import { SubmissionErrorType } from "@/enums/Error/submissionErrorType.enum";
+import { SystemErrorType } from "@/enums/Error/SystemErrorType.enum";
 import { status } from "@grpc/grpc-js";
 
 /**
@@ -17,6 +18,9 @@ export const mapMessageToGrpcStatus = (message : string) : status => {
         
         case message.startsWith('Syntax Error:'):
             return status.INVALID_ARGUMENT
+
+        case message === SystemErrorType.TooManyRequests:
+            return status.RESOURCE_EXHAUSTED
 
         default:
             return status.UNKNOWN
