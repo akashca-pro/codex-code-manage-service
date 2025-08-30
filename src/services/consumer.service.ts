@@ -1,6 +1,6 @@
 import { config } from "@/config";
 import TYPES from "@/config/inversify/types";
-import { KafkaConsumerGroups } from "@/config/nats/kafkaConsumerGroups";
+import { KafkaConsumerGroups } from "@/libs/kafka/kafkaConsumerGroups";
 import { REDIS_PREFIX } from "@/config/redis/keyPrefix";
 import { ICustomCodeResult } from "@/dtos/CustomCodeRestults.dto";
 import { IRunCodeResult } from "@/dtos/RunCodeResults.dto";
@@ -8,7 +8,7 @@ import { ISubmissionResult } from "@/dtos/SubmissionResults.dto";
 import { IGrpcProblemService } from "@/infra/grpc/ProblemService.interface";
 import { KafkaManager } from "@/libs/kafka/kafkaManager";
 import { KafkaTopics } from "@/libs/kafka/kafkaTopics";
-import { ICacheProvider } from "@/providers/cacheProvider/ICacheProvider.interface";
+import { ICacheProvider } from "@/providers/ICacheProvider.interface";
 import logger from "@akashcapro/codex-shared-utils/dist/utils/logger";
 import { inject, injectable } from "inversify";
 

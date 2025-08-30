@@ -1,12 +1,9 @@
 import { Kafka, Producer, Consumer, Admin, logLevel, Message } from 'kafkajs';
 import logger from '@akashcapro/codex-shared-utils/dist/utils/logger';
 import { config } from '@/config';
-import Redis from 'ioredis';
+import redis from '@/config/redis';
 import client from 'prom-client';
-import { REDIS_PREFIX } from '@/config/redis/keyPrefix';
 import { KafkaTopics } from './kafkaTopics';
-
-const redis = new Redis(config.REDIS_URL);
 
 // Prometheus Metrics
 const kafkaMessagesSent = new client.Counter({
@@ -32,6 +29,8 @@ export class KafkaManager {
   private dlqTopic = KafkaTopics.DLQ_QUEUE;
   private maxRetries = 3;
   private retryWorkerActive = false;
+  private retryWorkerInterval?: NodeJS.Timeout;
+
 
   private constructor() {
     this.kafka = new Kafka({
@@ -66,24 +65,36 @@ export class KafkaManager {
   }
 
   // Create topic if not exists
-  public async createTopic(topic: string, numPartitions = 1, replicationFactor = 1) {
+  public async createTopic(topic: string, numPartitions: number = 1, replicationFactor: number = 1) {
     if (!this.admin) throw new Error('Kafka admin not initialized');
-    const topics = await this.admin.listTopics();
-    if (!topics.includes(topic)) {
-      await this.admin.createTopics({ topics: [{ topic, numPartitions, replicationFactor }] });
+    try {
+      await this.admin.createTopics({
+        topics: [{ topic, numPartitions, replicationFactor }],
+        waitForLeaders: true, 
+      });
       logger.info(`Created topic: ${topic}`);
+    } catch (error: any) {
+      if (error.code === 36) {
+        logger.info(`Topic "${topic}" already exists. Skipping creation.`);
+      } else {
+        throw error; 
+      }
     }
   }
 
   // Send message with retry metadata
   public async sendMessage(topic: string, key: string | null, value: any, headers?: Record<string, string>) {
     if (!this.producer) throw new Error('Kafka producer not initialized');
+    
+    const finalValue = typeof value === 'string' ? value : JSON.stringify(value);
+
     await this.producer.send({
       topic,
-      messages: [{ key, value: JSON.stringify(value), headers: headers || {} }]
+      messages: [{ key, value: finalValue, headers: headers || {} }]
     });
     kafkaMessagesSent.inc();
   }
+
 
   // Batch message sending
   public async sendBatch(topic: string, messages: { key: string | null, value: any }[]) {
@@ -111,9 +122,16 @@ export class KafkaManager {
     await consumer.subscribe({ topic, fromBeginning: false });
 
     await consumer.run({
-      eachMessage: async ({ topic, message }) => {
+      eachMessage: async ({ topic, partition, message }) => {
         try {
-          const payload = message.value ? JSON.parse(message.value.toString()) : null;
+          const payload = (() => {
+            try {
+              return message.value ? JSON.parse(message.value.toString()) : null;
+            } catch {
+              return message.value?.toString(); 
+            }
+          })();
+
           await eachMessage(payload);
           kafkaMessagesConsumed.inc();
         } catch (error) {
@@ -157,15 +175,15 @@ export class KafkaManager {
     if (this.retryWorkerActive) return;
     this.retryWorkerActive = true;
 
-    setInterval(async () => {
+    this.retryWorkerInterval = setInterval(async () => {
       const now = Math.floor(Date.now() / 1000);
       const messages = await redis.zrangebyscore(this.retryQueueKey, 0, now);
 
-      for (const msg of messages) {
-        const data = JSON.parse(msg);
-        await this.sendMessage(data.topic, data.key, data.value, data.headers);
-        await redis.zrem(this.retryQueueKey, msg);
-      }
+    for (const msg of messages.slice(0, 50)) { // 50 at a time
+      const data = JSON.parse(msg);
+      await this.sendMessage(data.topic, data.key, data.value, data.headers);
+      await redis.zrem(this.retryQueueKey, msg);
+    }
     }, 5000);
   }
 
@@ -182,14 +200,18 @@ export class KafkaManager {
     await Promise.all([...this.consumers.values()].map((c) => c.disconnect()));
     if (this.producer) await this.producer.disconnect();
     if (this.admin) await this.admin.disconnect();
+    if (this.retryWorkerActive && this.retryWorkerInterval) {
+      clearInterval(this.retryWorkerInterval);
+      this.retryWorkerActive = false;
+    }
     logger.info('KafkaManager disconnected');
   }
 
-    private getRetryDelay(retryCount: number) {
-    const baseDelay = Math.min(60 * 10, Math.pow(2, retryCount) * 5); // max 10min
-    const jitter = Math.floor(Math.random() * 1000); // 0–1s
-    return baseDelay + jitter;
-    }
+private getRetryDelay(retryCount: number) {
+  const baseDelay = [5, 15, 30, 60, 120][retryCount] || 600; // seconds
+  const jitter = Math.floor(Math.random() * 3); // 0–3s
+  return baseDelay + jitter;
+}
 }
 
 export const kafkaManager = KafkaManager.getInstance();
