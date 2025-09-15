@@ -16,6 +16,9 @@ const TYPES = {
     // Listener service
     IConsumerService : Symbol.for("IConsumerService"),
 
+    // Execution result service
+    IExecutionResultService : Symbol.for("IExecutionResultService"),
+
     // Grpc server handler
     CodeManageHandler : Symbol.for("CodeManageHandler"),
 

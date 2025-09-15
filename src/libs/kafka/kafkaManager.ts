@@ -1,23 +1,8 @@
-import { Kafka, Producer, Consumer, Admin, logLevel, Message } from 'kafkajs';
+import { Kafka, Producer, Consumer, Admin, logLevel, Message, EachMessagePayload } from 'kafkajs';
 import logger from '@akashcapro/codex-shared-utils/dist/utils/logger';
 import { config } from '@/config';
 import redis from '@/config/redis';
-import client from 'prom-client';
 import { KafkaTopics } from './kafkaTopics';
-
-// Prometheus Metrics
-const kafkaMessagesSent = new client.Counter({
-  name: 'kafka_messages_sent_total',
-  help: 'Total messages sent to Kafka'
-});
-const kafkaMessagesConsumed = new client.Counter({
-  name: 'kafka_messages_consumed_total',
-  help: 'Total messages consumed from Kafka'
-});
-const kafkaConsumerLag = new client.Gauge({
-  name: 'kafka_consumer_lag',
-  help: 'Kafka Consumer lag'
-});
 
 export class KafkaManager {
   private static _instance: KafkaManager;
@@ -27,7 +12,8 @@ export class KafkaManager {
   private consumers = new Map<string, Consumer>();
   private retryQueueKey = KafkaTopics.RETRY_QUEUE;
   private dlqTopic = KafkaTopics.DLQ_QUEUE;
-  private maxRetries = 3;
+  private maxRetries = config.KAFKA_MAX_RETRIES;
+  private retryQueueCap = config.KAFKA_RETRY_QUEUE_CAP;
   private retryWorkerActive = false;
   private retryWorkerInterval?: NodeJS.Timeout;
 
@@ -92,7 +78,6 @@ export class KafkaManager {
       topic,
       messages: [{ key, value: finalValue, headers: headers || {} }]
     });
-    kafkaMessagesSent.inc();
   }
 
 
@@ -104,7 +89,6 @@ export class KafkaManager {
       value: JSON.stringify(m.value)
     }));
     await this.producer.send({ topic, messages: kafkaMessages });
-    kafkaMessagesSent.inc(messages.length);
   }
 
   // Consumer with retry + DLQ
@@ -122,21 +106,40 @@ export class KafkaManager {
     await consumer.subscribe({ topic, fromBeginning: false });
 
     await consumer.run({
-      eachMessage: async ({ topic, partition, message }) => {
-        try {
-          const payload = (() => {
-            try {
-              return message.value ? JSON.parse(message.value.toString()) : null;
-            } catch {
-              return message.value?.toString(); 
-            }
-          })();
+      autoCommit : false,
 
+      eachMessage: async ({ topic, partition, message }) => {
+
+        const offset = message.offset;
+        const key = message.key?.toString() || null;
+
+        let payload : any;
+        //parse payload 
+        try {
+          payload = message.value ? JSON.parse(message.value.toString()) : null;
+        } catch (parseError) {
+          logger.error('Invalid JSON, sending to DLQ', { topic, partition, offset, key, parseError });
+          await this.sendMessage(
+            dlqTopic,
+            message.key?.toString() || null,
+            message.value?.toString(),
+          );
+          await consumer.commitOffsets([{ topic, partition, offset : (Number(offset) + 1).toString() }]);
+          return; // skip retry
+        }
+        // process payload
+        try {
           await eachMessage(payload);
-          kafkaMessagesConsumed.inc();
-        } catch (error) {
-          logger.error('Message processing failed, scheduling retry', error);
-          await this.scheduleRetry(topic, message, dlqTopic);
+          await consumer.commitOffsets([{ topic, partition, offset : (Number(offset) + 1).toString() }]);
+        } catch (processingError) {
+          logger.error('Message processing failed, scheduling retry', { topic, partition, offset, key, processingError });
+          try {
+            await this.scheduleRetry(topic, message, dlqTopic);
+            await consumer.commitOffsets([{ topic, partition, offset: (Number(offset) + 1).toString() }]);
+          } catch (retryError) {
+            logger.error('Retry scheduling failed; not committing offset', { topic, partition, offset, key, retryError });
+            throw retryError;
+          }
         }
       }
     });
@@ -147,27 +150,49 @@ export class KafkaManager {
   }
 
   // Schedule retry in Redis
-  private async scheduleRetry(topic: string, message: Message, dlqTopic?: string) {
+  private async scheduleRetry(topic: string, message: Message, dlqTopic: string) {
     const headers = message.headers || {};
-    const retryCount = headers['x-retry-count'] ? parseInt(headers['x-retry-count'].toString()) : 0;
+    const retryCount = this.getHeaderString(message.headers, 'x-retry-count') ? parseInt(this.getHeaderString(message.headers, 'x-retry-count')!) : 0;
 
     if (retryCount >= this.maxRetries) {
       if (dlqTopic) {
-        await this.sendMessage(dlqTopic, message.key?.toString() || null, message.value?.toString());
+        await this.sendMessage(
+          dlqTopic, 
+          message.key?.toString() || null, message.value?.toString(),
+          { 'x-retry-count': String(retryCount) }
+        );
         logger.warn(`Message moved to DLQ after ${this.maxRetries} retries`);
       }
       return;
     }
 
-    const nextRetry = Math.floor(Date.now() / 1000) + this.getRetryDelay(retryCount);
+     const qSize = await redis.zcard(this.retryQueueKey);
+     const cap = this.retryQueueCap;
+     if(qSize >= cap){
+      logger.error('Retry queue capacity reached, sending message to DLQ', { qSize, cap, topic });
+      await this.sendMessage(
+        dlqTopic,
+        message.key?.toString() || null,
+        message.value?.toString(),
+        { 'x-error': 'retry-queue-capacity' }
+      );
+      return;
+     }
+
+    const now = Math.floor(Date.now() / 1000);
+    const nextRetry = now + this.getRetryDelay(retryCount);
     const retryData = {
       topic,
       key: message.key?.toString() || null,
       value: message.value?.toString() || '',
-      headers: { ...headers, 'x-retry-count': String(retryCount + 1) }
+      headers: { ...headers, 'x-retry-count': String(retryCount + 1) },
+      firstSeen : headers['x-first-seen'] ?? String(now),
     };
-
-    await redis.zadd(this.retryQueueKey, nextRetry, JSON.stringify(retryData));
+    try {
+      await redis.zadd(this.retryQueueKey, nextRetry, JSON.stringify(retryData));
+    } catch (error) {
+      throw error;
+    }
   }
 
   // Retry worker
@@ -175,16 +200,33 @@ export class KafkaManager {
     if (this.retryWorkerActive) return;
     this.retryWorkerActive = true;
 
-    this.retryWorkerInterval = setInterval(async () => {
-      const now = Math.floor(Date.now() / 1000);
-      const messages = await redis.zrangebyscore(this.retryQueueKey, 0, now);
+    let processing = false;
+    this.retryWorkerInterval = setInterval(async ()=> {
+      if(processing) return
+      processing = true;
+      try {
+        const batchSize = 50;
+        const items = await redis.zpopmin(this.retryQueueKey, batchSize);
 
-    for (const msg of messages.slice(0, 50)) { // 50 at a time
-      const data = JSON.parse(msg);
-      await this.sendMessage(data.topic, data.key, data.value, data.headers);
-      await redis.zrem(this.retryQueueKey, msg);
-    }
-    }, 5000);
+        if (!items || items.length === 0) return;
+
+        for(let i = 0; i<items.length; i+= 2){
+          const raw = items[i];
+          try {
+            const data = JSON.parse(raw);
+            await this.sendMessage(data.topic, data.key, data.value, data.headers);
+            // inc metric (retry)
+          } catch (error) {
+            logger.error('Retry worker failed for message', { raw, error });
+            await this.sendMessage(this.dlqTopic, null, raw, { 'x-error': 'retry-worker-failed' });
+          }
+        }
+      } catch (error) {
+        logger.error('Retry worker tick failed', error);
+      } finally {
+        processing = false;
+      }
+    },5000);
   }
 
   // Dynamic Config Reload
@@ -207,11 +249,19 @@ export class KafkaManager {
     logger.info('KafkaManager disconnected');
   }
 
-private getRetryDelay(retryCount: number) {
-  const baseDelay = [5, 15, 30, 60, 120][retryCount] || 600; // seconds
-  const jitter = Math.floor(Math.random() * 3); // 0–3s
-  return baseDelay + jitter;
-}
+  private getRetryDelay(retryCount: number) {
+    // base in seconds from config
+    const base = Number(process.env.KAFKA_RETRY_BASE_SECONDS ?? 5);
+    const max = Number(process.env.KAFKA_RETRY_MAX_SECONDS ?? 600);
+    // exponential: base * 2^retryCount
+    const exp = Math.min(base * Math.pow(2, retryCount), max);
+    const jitter = Math.floor(Math.random() * Math.max(1, Math.round(exp * 0.1))); // 0-10% jitter
+    return Math.round(exp + jitter);
+  }
+
+  private getHeaderString (h: any, key: string) {
+    return h && h[key] ? (Buffer.isBuffer(h[key]) ? h[key].toString() : String(h[key])) : undefined;
+  }
 }
 
 export const kafkaManager = KafkaManager.getInstance();

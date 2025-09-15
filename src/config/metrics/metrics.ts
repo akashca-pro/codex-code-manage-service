@@ -15,4 +15,27 @@ export const grpcLatency = new client.Histogram({
   buckets: [10, 50, 100, 300, 500, 1000, 2000]
 });
 
+export const producedCounter = new client.Counter({
+  name: 'kafka_produced_messages_total',
+  help: 'Number of messages produced to kafka',
+  labelNames: ['topic', 'status'] 
+});
+export const consumedCounter = new client.Counter({
+  name: 'kafka_consumed_messages_total',
+  help: 'Number of consumed messages',
+  labelNames: ['topic', 'status'] 
+});
+
+export const retryScheduledCounter = new client.Counter({
+  name: 'kafka_retries_scheduled_total',
+  help: 'Messages scheduled for retry',
+  labelNames: ['topic']
+});
+
+export const retryQueueGauge = new client.Gauge({
+  name: 'kafka_retry_queue_size',
+  help: 'Number of items in retry queue (redis)',
+  labelNames: ['queue']
+});
+
 export const register = client.register;

@@ -10,4 +10,6 @@ export const REDIS_PREFIX = {
 
     KAFKA_IDEMPOTENCY_KEY : 'processed',
     THROTTLE_KEY : 'throttle:user',
+
+    PROBLEM_DETAILS : 'problem:details'
 } as const

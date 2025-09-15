@@ -15,7 +15,10 @@ interface Config {
     KAFKA_CLIENT_ID : string;
     KAFKA_BROKERS : string;
     KAFKA_GROUP_ID : string;
+    KAFKA_MAX_RETRIES : number;
+    KAFKA_RETRY_QUEUE_CAP : number;
     RUN_CODE_DETAILS_CACHE_EXPIRY : number;
+    PROBLEM_DETAILS_CACHE_EXPIRY : number;
 }
 
 export const config : Config = {
@@ -32,5 +35,8 @@ export const config : Config = {
     KAFKA_CLIENT_ID : process.env.KAFKA_CLIENT_ID || 'code-manage-service',
     KAFKA_BROKERS : process.env.KAFKA_BROKERS || 'localhost:9092',
     KAFKA_GROUP_ID : process.env.KAFKA_GROUP_ID!,
-    RUN_CODE_DETAILS_CACHE_EXPIRY : Number(process.env.RUN_CODE_DETAILS_CACHE_EXPIRY)!
+    RUN_CODE_DETAILS_CACHE_EXPIRY : Number(process.env.RUN_CODE_DETAILS_CACHE_EXPIRY)!,
+    PROBLEM_DETAILS_CACHE_EXPIRY : Number(process.env.PROBLEM_DETAILS_CACHE_EXPIRY)!,
+    KAFKA_MAX_RETRIES : Number(process.env.KAFKA_MAX_RETRIES)!,
+    KAFKA_RETRY_QUEUE_CAP : Number(process.env.KAFKA_RETRY_QUEUE_CAP)!,
 }

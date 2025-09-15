@@ -1,3 +1,4 @@
+import { ExecutionResultErrorType } from "@/enums/Error/ExecutionResultErrorType.enum";
 import { ProblemErrorType } from "@/enums/Error/ProblemServiceErrorType.enum";
 import { SubmissionErrorType } from "@/enums/Error/submissionErrorType.enum";
 import { SystemErrorType } from "@/enums/Error/SystemErrorType.enum";
@@ -14,6 +15,9 @@ export const mapMessageToGrpcStatus = (message : string) : status => {
 
         case message === SubmissionErrorType.SubmissionNotFound:
         case message === ProblemErrorType.ProblemNotFound:
+        case message === ExecutionResultErrorType.SubmitCodeResultNotFound:
+        case message === ExecutionResultErrorType.RunCodeResultNotFound:
+        case message === ExecutionResultErrorType.CustomCodeResultNotFound:
             return status.NOT_FOUND
         
         case message.startsWith('Syntax Error:'):
@@ -21,6 +25,9 @@ export const mapMessageToGrpcStatus = (message : string) : status => {
 
         case message === SystemErrorType.TooManyRequests:
             return status.RESOURCE_EXHAUSTED
+
+        case message === ExecutionResultErrorType.UnauthorizedAccess:
+            return status.PERMISSION_DENIED
 
         default:
             return status.UNKNOWN

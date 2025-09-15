@@ -12,6 +12,10 @@ import { CodeSanitizer } from "@/utils/codeSanitize";
 import { SubmitCodeExecRequest } from "@akashcapro/codex-shared-utils/dist/proto/compiled/internal/code_manage";
 import { inject, injectable } from "inversify";
 import { IProducerService } from "./interface/producer.service.interface";
+import { ICacheProvider } from "@/providers/ICacheProvider.interface";
+import { REDIS_PREFIX } from "@/config/redis/keyPrefix";
+import { Problem } from "@akashcapro/codex-shared-utils/dist/proto/compiled/gateway/problem";
+import { config } from "@/config";
 
 /**
  * Class responsible for producing messages to Kafka topics.
@@ -26,6 +30,7 @@ export class ProducerService implements IProducerService {
     #_kafkaManager : KafkaManager
     #_sanitizer : CodeSanitizer
     #_problemGrpcClient : IGrpcProblemService
+    #_cacheProvider : ICacheProvider
 
     constructor(
         @inject(TYPES.KafkaManager)
@@ -35,11 +40,15 @@ export class ProducerService implements IProducerService {
         problemGrpcClient : IGrpcProblemService,
 
         @inject(TYPES.CodeSanitizer)
-        sanitizer : CodeSanitizer
+        sanitizer : CodeSanitizer,
+
+        @inject(TYPES.ICacheProvider)
+        cacheProvider : ICacheProvider
     ){
         this.#_kafkaManager = kafkaManager;
         this.#_problemGrpcClient = problemGrpcClient;
         this.#_sanitizer = sanitizer;
+        this.#_cacheProvider = cacheProvider;
     }
 
     async submitCodeExec(data : SubmitCodeExecRequest) : Promise<ResponseDTO> {
@@ -55,9 +64,22 @@ export class ProducerService implements IProducerService {
                 errorMessage : error
             }
         }
-        
-        const problem = await this.#_problemGrpcClient.getProblem({ Id : data.problemId });
 
+        let problem : Problem | null = null;
+
+        const cachKey = `${REDIS_PREFIX.PROBLEM_DETAILS}:${data.problemId}`;
+
+        const cached = await this.#_cacheProvider.get(cachKey);
+
+        if(cached){
+            problem = cached as Problem;
+        }else{
+            problem = await this.#_problemGrpcClient.getProblem({ Id : data.problemId });
+            if(problem){
+                await this.#_cacheProvider.set(cachKey, problem, config.PROBLEM_DETAILS_CACHE_EXPIRY);
+            }
+        }
+        
         if(!problem){
             return {
                 data : null,
@@ -107,8 +129,21 @@ export class ProducerService implements IProducerService {
             }
         }
         
-        const problem = await this.#_problemGrpcClient.getProblem({ Id : data.problemId });
+        let problem : Problem | null = null;
 
+        const cachKey = `${REDIS_PREFIX.PROBLEM_DETAILS}:${data.problemId}`;
+
+        const cached = await this.#_cacheProvider.get(cachKey);
+
+        if(cached){
+            problem = cached as Problem | null ;
+        }else{
+            problem = await this.#_problemGrpcClient.getProblem({ Id : data.problemId });
+            if(problem){
+                await this.#_cacheProvider.set(cachKey, problem, config.PROBLEM_DETAILS_CACHE_EXPIRY);
+            }
+        }
+        
         if(!problem){
             return {
                 data : null,
