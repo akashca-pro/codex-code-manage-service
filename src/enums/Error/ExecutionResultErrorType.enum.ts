@@ -11,6 +11,4 @@ export enum ExecutionResultErrorType {
     RunCodeResultNotFound = 'Run code result not found',
 
     CustomCodeResultNotFound = 'Custom code result not found',
-
-    UnauthorizedAccess = 'Unauthorized access to execution details.'
 }

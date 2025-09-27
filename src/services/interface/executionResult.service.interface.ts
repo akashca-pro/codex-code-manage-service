@@ -1,7 +1,4 @@
-import { ICustomCodeResult } from "@/dtos/CustomCodeRestults.dto";
 import { ResponseDTO } from "@/dtos/Response.dto";
-import { IRunCodeResult } from "@/dtos/RunCodeResults.dto";
-import { ISubmissionResult } from "@/dtos/SubmissionResults.dto";
 
 /**
  * Interface defining the contract for a Execution result service.
@@ -15,27 +12,33 @@ export interface IExecutionResultService {
      * 
      * @async
      * @param {userId} userId - The unique id of the user.
-     * @param {submissionId} submissionId - The id of the submission. 
+     * @param {problemId} problemId - The id of the specific problem.
+     * @param {submissionId} submissionId - The id of the submission of the specific problem. 
      * @returns {ResponseDTO} - The response contains result of the submission.
      */
     submitCodeResult (
         userId : string, 
+        problemId : string,
         submissionId : string
     ) : Promise<ResponseDTO>
 
     /**
      * This method get the run result from the cache and send to gateway.
      * 
-     * @param userId - The unique id of the user.
-     * @returns {ResponseDTO} - The response contains result of the run.
+     * @param tempId - The unique id of the user.
+     * @param problemId - The id of the specific problem.
+     * @returns {ResponseDTO} - The response contains result of the run code.
      */
-    runCodeResult(userId : string) : Promise<ResponseDTO>
+    runCodeResult(
+        tempId : string,
+        problemId : string,
+    ) : Promise<ResponseDTO>
 
     /**
      * This method get the run result from the cach and send to gateway.
      * 
      * @param tempId - The unique id of the user.
-     * @returns {ResponseDTO} - The response contains result of the run.
+     * @returns {ResponseDTO} - The response contains result of the run code.
      */
     customCodeResult(tempId : string) : Promise<ResponseDTO>
 

@@ -1,4 +1,4 @@
-import { ExecutionResult } from "@akashcapro/codex-shared-utils/dist/proto/compiled/gateway/problem";
+import { ExecutionResult } from "./executionResult.dto";
 
 /**
  * Interface representing the structure of a submission result.
@@ -6,12 +6,7 @@ import { ExecutionResult } from "@akashcapro/codex-shared-utils/dist/proto/compi
  * @interface
  */
 export interface ISubmissionResult {
-    problemId : string;
     submissionId : string;
     userId : string;
     executionResult : ExecutionResult
-    executionTime : number ;
-    memoryUsage : number;
-    status : string;
-    score : number;
 }

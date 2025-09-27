@@ -1,4 +1,4 @@
-import { ExecutionResult } from "@akashcapro/codex-shared-utils/dist/proto/compiled/gateway/problem";
+import { ExecutionResult } from "./executionResult.dto";
 
 /**
 /**
@@ -7,10 +7,6 @@ import { ExecutionResult } from "@akashcapro/codex-shared-utils/dist/proto/compi
  */
 export interface IRunCodeResult {
     problemId : string;
-    userId : string;
-    stdOut? : string;
-    status : string;
-    executionTime : number;
-    memoryUsage : number;
+    tempId : string;
     executionResult : ExecutionResult;
 }

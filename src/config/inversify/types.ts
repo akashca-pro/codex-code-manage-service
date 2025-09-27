@@ -2,7 +2,6 @@
 const TYPES = {
 
     // Providers
-    IMessageProvider : Symbol.for("IMessageProvider"),
     ICacheProvider : Symbol.for("ICacheProvider"),
     KafkaManager : Symbol.for("KafkaManager"),
     CodeSanitizer : Symbol.for("CodeSanitizer"),

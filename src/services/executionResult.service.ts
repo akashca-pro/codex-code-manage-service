@@ -29,6 +29,7 @@ export class ExecutionResultService implements IExecutionResultService {
 
     async submitCodeResult(
         userId: string,
+        problemId : string,
         submissionId: string
     ): Promise<ResponseDTO> {
         
@@ -36,19 +37,14 @@ export class ExecutionResultService implements IExecutionResultService {
 
         const submissionResult = await this.#_cacheProvider.get(cacheKey) as ISubmissionResult | null;
 
-        if(!submissionResult){
+        if(!submissionResult || 
+            submissionResult.userId !== userId || 
+            submissionResult.problemId !== problemId
+        ){
             return {
                 data : null,
                 success : false,
                 errorMessage : ExecutionResultErrorType.SubmitCodeResultNotFound
-            }
-        }
-
-        if(submissionResult.userId !== userId){
-            return {
-                data : null,
-                success : false,
-                errorMessage : ExecutionResultErrorType.UnauthorizedAccess
             }
         }
 
@@ -62,25 +58,23 @@ export class ExecutionResultService implements IExecutionResultService {
         }
     }
 
-    async runCodeResult(userId: string): Promise<ResponseDTO> {
+    async runCodeResult(
+        tempId: string,
+        problemId : string
+    ): Promise<ResponseDTO> {
         
-        const cacheKey = `${REDIS_PREFIX.RUN_CODE_NORMAL_CACHE}:${userId}`
+        const cacheKey = `${REDIS_PREFIX.RUN_CODE_NORMAL_CACHE}:${tempId}`
 
         const runCodeResult = await this.#_cacheProvider.get(cacheKey) as IRunCodeResult | null;
 
-        if(!runCodeResult){
+        if(!runCodeResult ||
+            runCodeResult.tempId !== tempId ||
+            runCodeResult.problemId !== problemId
+        ){
             return {
                 data : null,
                 success : false,
                 errorMessage : ExecutionResultErrorType.RunCodeResultNotFound
-            }
-        }
-
-        if(runCodeResult.userId !== userId){
-            return {
-                data : null,
-                success : false,
-                errorMessage : ExecutionResultErrorType.UnauthorizedAccess
             }
         }
 
@@ -100,19 +94,13 @@ export class ExecutionResultService implements IExecutionResultService {
 
         const customCodeResult = await this.#_cacheProvider.get(cacheKey) as ICustomCodeResult | null
 
-        if(!customCodeResult){
+        if(!customCodeResult ||
+            customCodeResult.tempId !== tempId
+        ){
             return {
                 data : null,
                 success : false,
                 errorMessage : ExecutionResultErrorType.RunCodeResultNotFound
-            }
-        }
-
-        if(customCodeResult.tempId !== tempId){
-            return {
-                data : null,
-                success : false,
-                errorMessage : ExecutionResultErrorType.UnauthorizedAccess
             }
         }
 

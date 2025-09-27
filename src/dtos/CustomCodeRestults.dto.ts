@@ -8,7 +8,5 @@ import { ExecutionResult } from "@akashcapro/codex-shared-utils/dist/proto/compi
 export interface ICustomCodeResult {
     tempId : string;
     stdOut : string;
-    executionTime : number;
-    memoryUsage : number;
 }
 

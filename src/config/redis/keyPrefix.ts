@@ -8,7 +8,9 @@ export const REDIS_PREFIX = {
 
     CUSTOM_CODE_NORMAL_CACHE : 'custom:normal',
 
-    KAFKA_IDEMPOTENCY_KEY : 'processed',
+    KAFKA_IDEMPOTENCY_KEY_SUBMIT_CODE : 'processed:submit_code',
+    KAFKA_IDEMPOTENCY_KEY_RUN_CODE : 'processed:run_code',
+    KAFKA_IDEMPOTENCY_KEY_CUSTOM_CODE : 'processed:custom_code',
     THROTTLE_KEY : 'throttle:user',
 
     PROBLEM_DETAILS : 'problem:details'

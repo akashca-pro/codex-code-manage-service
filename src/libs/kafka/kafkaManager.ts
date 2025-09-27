@@ -1,4 +1,4 @@
-import { Kafka, Producer, Consumer, Admin, logLevel, Message, EachMessagePayload } from 'kafkajs';
+import { Kafka, Producer, Consumer, Admin, logLevel, Message } from 'kafkajs';
 import logger from '@akashcapro/codex-shared-utils/dist/utils/logger';
 import { config } from '@/config';
 import redis from '@/config/redis';

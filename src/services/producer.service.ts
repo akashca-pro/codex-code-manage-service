@@ -16,6 +16,9 @@ import { ICacheProvider } from "@/providers/ICacheProvider.interface";
 import { REDIS_PREFIX } from "@/config/redis/keyPrefix";
 import { Problem } from "@akashcapro/codex-shared-utils/dist/proto/compiled/gateway/problem";
 import { config } from "@/config";
+import { ICustomCodeExecJobPayload, IRunCodeExecJobPayload, ISubmissionExecJobPayload } from "@/libs/kafka/interfaces/jobPayload.interface";
+import { populateTemplate } from "@/utils/populateTemplate";
+import { randomUUID } from "node:crypto";
 
 /**
  * Class responsible for producing messages to Kafka topics.
@@ -52,11 +55,8 @@ export class ProducerService implements IProducerService {
     }
 
     async submitCodeExec(data : SubmitCodeExecRequest) : Promise<ResponseDTO> {
-
         const language = Mapper.mapGrpcLanguageEnum(data.language)
-
         const { isValid, error } = this.#_sanitizer.sanitize(data.userCode,language);
-
         if(!isValid){
             return {
                 data : null,
@@ -64,13 +64,9 @@ export class ProducerService implements IProducerService {
                 errorMessage : error
             }
         }
-
         let problem : Problem | null = null;
-
         const cachKey = `${REDIS_PREFIX.PROBLEM_DETAILS}:${data.problemId}`;
-
         const cached = await this.#_cacheProvider.get(cachKey);
-
         if(cached){
             problem = cached as Problem;
         }else{
@@ -79,36 +75,46 @@ export class ProducerService implements IProducerService {
                 await this.#_cacheProvider.set(cachKey, problem, config.PROBLEM_DETAILS_CACHE_EXPIRY);
             }
         }
-        
-        if(!problem){
+        if(!problem || 
+            !problem.testcaseCollection){
             return {
                 data : null,
                 success : false,
                 errorMessage : ProblemErrorType.ProblemNotFound
             }
         }
-
         const submission = await this.#_problemGrpcClient.createSubmission(
             SubmissionMapper.toCreateSubmissionDTO(
                 data, 
                 { title : problem.title, difficulty : problem.difficulty }
             )
         );
-
-        const jobPayload = {
-            submissionId : submission.Id,
-            userCode : data.userCode,
-            language : data.language,
-            userId : data.userId,
-            testCases : problem.testcaseCollection?.submit
+        const templateCode = problem.templateCodes.find(t=>t.language === data.language);
+        if(!templateCode || !templateCode.wrappedCode){
+            return {
+                data : null,
+                success : false,
+                errorMessage : ProblemErrorType.ProblemNotFound
+            }
         }
-
+        const executableCode = populateTemplate(
+            language,
+            JSON.parse(templateCode.wrappedCode),
+            JSON.parse(data.userCode),
+            problem.testcaseCollection.submit
+        )
+        const jobPayload : ISubmissionExecJobPayload = {
+            submissionId : submission.Id,
+            executableCode,
+            language : language,
+            userId : data.userId,
+            testCases :  problem.testcaseCollection?.submit,
+        }
         await this.#_kafkaManager.sendMessage(
             KafkaTopics.SUBMISSION_JOBS,
             jobPayload.submissionId,
             jobPayload
         );
-
         return {
             data : submission.Id,
             success : true
@@ -116,11 +122,9 @@ export class ProducerService implements IProducerService {
     }
 
     async runCodeExec(data : IRunCodeExecRequestDTO) : Promise<ResponseDTO> {
-
-        const language = Mapper.mapGrpcLanguageEnum(data.language)
-
+        const language = Mapper.mapGrpcLanguageEnum(data.language);
+        const tempId = randomUUID();
         const { isValid, error } = this.#_sanitizer.sanitize(data.userCode,language);
-
         if(!isValid){
             return {
                 data : null,
@@ -128,13 +132,9 @@ export class ProducerService implements IProducerService {
                 errorMessage : error
             }
         }
-        
         let problem : Problem | null = null;
-
         const cachKey = `${REDIS_PREFIX.PROBLEM_DETAILS}:${data.problemId}`;
-
         const cached = await this.#_cacheProvider.get(cachKey);
-
         if(cached){
             problem = cached as Problem | null ;
         }else{
@@ -143,7 +143,6 @@ export class ProducerService implements IProducerService {
                 await this.#_cacheProvider.set(cachKey, problem, config.PROBLEM_DETAILS_CACHE_EXPIRY);
             }
         }
-        
         if(!problem){
             return {
                 data : null,
@@ -151,30 +150,41 @@ export class ProducerService implements IProducerService {
                 errorMessage : ProblemErrorType.ProblemNotFound
             }
         }
-
-         const jobPayload = {
+        const templateCode = problem.templateCodes.find(t=>t.language === data.language);
+        if(!templateCode || !templateCode.wrappedCode){
+            return {
+                data : null,
+                success : false,
+                errorMessage : ProblemErrorType.ProblemNotFound
+            }
+        }
+        const executableCode = populateTemplate(
+            language,
+            JSON.parse(templateCode.wrappedCode),
+            JSON.parse(data.userCode),
+            data.testCases
+        )
+         const jobPayload : IRunCodeExecJobPayload = {
             ...data,
+            tempId,
+            executableCode,
             language
         };
-
         await this.#_kafkaManager.sendMessage(
-            data.userId,
+            tempId,
             KafkaTopics.RUN_JOBS,
             jobPayload
         );
-
         return {
-            data : null,
+            data : tempId,
             success : true
         }
     }
 
     async customCodeExec(data : ICustomCodeExecRequestDTO) : Promise<ResponseDTO> {
-
-        const language = Mapper.mapGrpcLanguageEnum(data.language)
-
+        const language = Mapper.mapGrpcLanguageEnum(data.language);
+        const tempId = randomUUID();
         const { isValid, error } = this.#_sanitizer.sanitize(data.userCode,language);
-
         if(!isValid){
             return {
                 data : null,
@@ -182,15 +192,18 @@ export class ProducerService implements IProducerService {
                 errorMessage : error
             }
         }
-
+        const jobPayload : ICustomCodeExecJobPayload = {
+            language,
+            tempId,
+            userCode : data.userCode,
+        }
         await this.#_kafkaManager.sendMessage(
-            data.tempId,
+            tempId,
             KafkaTopics.CUSTOM_JOBS,
-            data
+            jobPayload
         );
-
         return {
-            data : null,
+            data : tempId,
             success : true,
         }
     }

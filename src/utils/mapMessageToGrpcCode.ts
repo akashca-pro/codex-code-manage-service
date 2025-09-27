@@ -26,9 +26,6 @@ export const mapMessageToGrpcStatus = (message : string) : status => {
         case message === SystemErrorType.TooManyRequests:
             return status.RESOURCE_EXHAUSTED
 
-        case message === ExecutionResultErrorType.UnauthorizedAccess:
-            return status.PERMISSION_DENIED
-
         default:
             return status.UNKNOWN
     }

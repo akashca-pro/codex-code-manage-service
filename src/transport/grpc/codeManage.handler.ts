@@ -83,6 +83,7 @@ export class CodeManageHandler {
             const req = call.request;
             const result = await this.#_executionResultService.submitCodeResult(
                 req.userId,
+                req.problemId,
                 req.submissionId
             );
             if(!result.success){
@@ -99,7 +100,8 @@ export class CodeManageHandler {
         async (call, callback) => {
             const req = call.request;
             const result = await this.#_executionResultService.runCodeResult(
-                req.userId
+                req.tempId,
+                req.problemId
             );
             if(!result.success){
                 return callback({

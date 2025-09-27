@@ -8,7 +8,6 @@ import {
  * @interface
  */
 export interface ICustomCodeExecRequestDTO {
-    tempId : string;
     userCode : string;
     language : GrpcLanguageEnum
 }
