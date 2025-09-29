@@ -5,7 +5,7 @@ import { Server, ServerCredentials } from "@grpc/grpc-js";
 import { CodeManageHandler } from "./codeManage.handler";
 import TYPES from "@/config/inversify/types";
 import { wrapAll } from "@/utils/metricsMiddleware";
-import { CodeManageServiceService } from "@akashcapro/codex-shared-utils/dist/proto/compiled/internal/code_manage";
+import { CodeManageServiceService } from "@akashcapro/codex-shared-utils/dist/proto/compiled/gateway/code_manage";
 
 // Grpc Handler
 const codeManageHandlerInstance = container.get<CodeManageHandler>(TYPES.CodeManageHandler)

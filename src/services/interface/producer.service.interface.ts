@@ -1,7 +1,7 @@
 import { ICustomCodeExecRequestDTO } from "@/dtos/CompileCodeExec.dto";
 import { ResponseDTO } from "@/dtos/Response.dto";
 import { IRunCodeExecRequestDTO } from "@/dtos/RunCodeExec.dto";
-import { SubmitCodeExecRequest } from "@akashcapro/codex-shared-utils/dist/proto/compiled/internal/code_manage";
+import { SubmitCodeExecRequest } from "@akashcapro/codex-shared-utils/dist/proto/compiled/gateway/code_manage";
 
 /**
  * Interface defining the contract for a ProducerService.

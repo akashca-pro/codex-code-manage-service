@@ -9,7 +9,7 @@ import { Mapper } from "@/enums/Mapper";
 import { IGrpcProblemService } from "@/infra/grpc/ProblemService.interface";
 import { KafkaManager } from "@/libs/kafka/kafkaManager";
 import { CodeSanitizer } from "@/utils/codeSanitize";
-import { SubmitCodeExecRequest } from "@akashcapro/codex-shared-utils/dist/proto/compiled/internal/code_manage";
+import { SubmitCodeExecRequest } from "@akashcapro/codex-shared-utils/dist/proto/compiled/gateway/code_manage";
 import { inject, injectable } from "inversify";
 import { IProducerService } from "./interface/producer.service.interface";
 import { ICacheProvider } from "@/providers/ICacheProvider.interface";
@@ -100,7 +100,7 @@ export class ProducerService implements IProducerService {
         const executableCode = populateTemplate(
             language,
             JSON.parse(templateCode.wrappedCode),
-            JSON.parse(data.userCode),
+            data.userCode,
             problem.testcaseCollection.submit
         )
         const jobPayload : ISubmissionExecJobPayload = {
@@ -116,7 +116,7 @@ export class ProducerService implements IProducerService {
             jobPayload
         );
         return {
-            data : submission.Id,
+            data : { submissionId : submission.Id },
             success : true
         }
     }
@@ -161,7 +161,7 @@ export class ProducerService implements IProducerService {
         const executableCode = populateTemplate(
             language,
             JSON.parse(templateCode.wrappedCode),
-            JSON.parse(data.userCode),
+            data.userCode,
             data.testCases
         )
          const jobPayload : IRunCodeExecJobPayload = {
@@ -171,12 +171,12 @@ export class ProducerService implements IProducerService {
             language
         };
         await this.#_kafkaManager.sendMessage(
-            tempId,
             KafkaTopics.RUN_JOBS,
+            tempId,
             jobPayload
         );
         return {
-            data : tempId,
+            data : {tempId},
             success : true
         }
     }
@@ -198,12 +198,12 @@ export class ProducerService implements IProducerService {
             userCode : data.userCode,
         }
         await this.#_kafkaManager.sendMessage(
-            tempId,
             KafkaTopics.CUSTOM_JOBS,
+            tempId,
             jobPayload
         );
         return {
-            data : tempId,
+            data : {tempId},
             success : true,
         }
     }

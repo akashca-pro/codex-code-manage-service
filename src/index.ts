@@ -1,4 +1,3 @@
-import express from 'express';
 import logger from '@akashcapro/codex-shared-utils/dist/utils/logger';
 import { config } from '@/config';
 import { startMetricsServer } from '@/config/metrics/metrics-server';
@@ -9,8 +8,6 @@ import { KafkaManager } from './libs/kafka/kafkaManager';
 import { KafkaTopics } from './libs/kafka/kafkaTopics';
 import { ConsumerService } from './services/consumer.service';
 
-const app = express();
-
 const startServer = async () => {
     try {
         const kafkaManager = container.get<KafkaManager>(TYPES.KafkaManager);
@@ -18,7 +15,7 @@ const startServer = async () => {
         // kafka core setup
         await kafkaManager.init();
 
-        // create topics
+        // // create topics
         await kafkaManager.createTopic(KafkaTopics.SUBMISSION_JOBS);
         await kafkaManager.createTopic(KafkaTopics.SUBMISSION_RESULTS);
         await kafkaManager.createTopic(KafkaTopics.RUN_JOBS);
@@ -26,7 +23,7 @@ const startServer = async () => {
         await kafkaManager.createTopic(KafkaTopics.CUSTOM_JOBS);
         await kafkaManager.createTopic(KafkaTopics.CUSTOM_RESULTS);
 
-        // start consumers
+        // // start consumers
         const consumerService = container.get<ConsumerService>(TYPES.IConsumerService);
         await consumerService.submitCodeExec();
         await consumerService.runCodeExec();

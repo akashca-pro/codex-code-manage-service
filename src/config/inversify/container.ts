@@ -12,8 +12,6 @@ import { ProducerService } from '@/services/producer.service';
 import { IConsumerService } from '@/services/interface/consumer.service.interface';
 import { ConsumerService } from '@/services/consumer.service';
 import { CodeManageHandler } from '@/transport/grpc/codeManage.handler';
-import { IExecutionResultService } from '@/services/interface/executionResult.service.interface';
-import { ExecutionResultService } from '@/services/executionResult.service';
 
 const container = new Container();
 
@@ -47,11 +45,6 @@ container
     .bind<IConsumerService>(TYPES.IConsumerService)
     .to(ConsumerService)
     .inSingletonScope();
-
-// Execution result service
-container
-    .bind<IExecutionResultService>(TYPES.IExecutionResultService)
-    .to(ExecutionResultService).inSingletonScope();
 
 // Grpc server handler
 container

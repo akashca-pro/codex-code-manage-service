@@ -6,7 +6,6 @@ import { ExecutionResult } from "./executionResult.dto";
  * 
  */
 export interface IRunCodeResult {
-    problemId : string;
     tempId : string;
     executionResult : ExecutionResult;
 }

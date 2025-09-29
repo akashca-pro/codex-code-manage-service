@@ -2,7 +2,7 @@ import {
         Difficulty as GrpcDifficultyEnum,
         Language as GrpcLanguageEnum 
   } from "@akashcapro/codex-shared-utils/dist/proto/compiled/gateway/problem";
-import { SubmitCodeExecRequest } from '@akashcapro/codex-shared-utils/dist/proto/compiled/internal/code_manage'
+import { SubmitCodeExecRequest } from "@akashcapro/codex-shared-utils/dist/proto/compiled/gateway/code_manage"
 import { ICreateSubmissionRequestDTO } from "../CreateSubmission.dto";
 import { Difficulty } from "@/enums/Difficulty.enum";
 import { Language } from "@/enums/Language.enum";
@@ -14,8 +14,13 @@ export class SubmissionMapper {
         data : SubmitCodeExecRequest, 
         addons : {title : string, difficulty : GrpcDifficultyEnum} 
     ) : ICreateSubmissionRequestDTO {
+        console.log(data)
         return {
-            ...data,
+            problemId : data.problemId,
+            userCode : data.userCode,
+            userId : data.userId,
+            country : data.country ? data.country : undefined,
+            language : data.language,
             title : addons.title,
             difficulty : addons.difficulty
         }

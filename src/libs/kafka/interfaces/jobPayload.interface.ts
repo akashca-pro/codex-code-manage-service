@@ -14,7 +14,6 @@ export interface ISubmissionExecJobPayload {
 }
 
 export interface IRunCodeExecJobPayload {
-    problemId : string;
     tempId : string;
     language : Language;
     userCode : string;
