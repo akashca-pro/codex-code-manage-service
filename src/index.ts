@@ -30,7 +30,7 @@ const startServer = async () => {
         await consumerService.customCodeExec();
 
         // Start prometheus metrics server.
-        startMetricsServer(config.METRICS_PORT);
+        startMetricsServer(config.CODE_MANAGE_SERVICE_METRICS_PORT);
 
         // start gRPC server.
         startGrpcServer();

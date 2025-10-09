@@ -65,7 +65,7 @@ export class ProducerService implements IProducerService {
             }
         }
         let problem : Problem | null = null;
-        const cachKey = `${REDIS_PREFIX.PROBLEM_DETAILS}:${data.problemId}`;
+        const cachKey = `${REDIS_PREFIX.CODE_MANAGE_PROBLEM_DETAILS}:${data.problemId}`;
         const cached = await this.#_cacheProvider.get(cachKey);
         if(cached){
             problem = cached as Problem;
@@ -90,7 +90,7 @@ export class ProducerService implements IProducerService {
             )
         );
         const templateCode = problem.templateCodes.find(t=>t.language === data.language);
-        if(!templateCode || !templateCode.wrappedCode){
+        if(!templateCode || !templateCode.submitWrapperCode){
             return {
                 data : null,
                 success : false,
@@ -99,8 +99,8 @@ export class ProducerService implements IProducerService {
         }
         const executableCode = populateTemplate(
             language,
-            JSON.parse(templateCode.wrappedCode),
-            data.userCode,
+            JSON.parse(templateCode.submitWrapperCode),
+            JSON.parse(data.userCode),
             problem.testcaseCollection.submit
         )
         const jobPayload : ISubmissionExecJobPayload = {
@@ -133,7 +133,7 @@ export class ProducerService implements IProducerService {
             }
         }
         let problem : Problem | null = null;
-        const cachKey = `${REDIS_PREFIX.PROBLEM_DETAILS}:${data.problemId}`;
+        const cachKey = `${REDIS_PREFIX.CODE_MANAGE_PROBLEM_DETAILS}:${data.problemId}`;
         const cached = await this.#_cacheProvider.get(cachKey);
         if(cached){
             problem = cached as Problem | null ;
@@ -151,7 +151,7 @@ export class ProducerService implements IProducerService {
             }
         }
         const templateCode = problem.templateCodes.find(t=>t.language === data.language);
-        if(!templateCode || !templateCode.wrappedCode){
+        if(!templateCode || !templateCode.runWrapperCode){
             return {
                 data : null,
                 success : false,
@@ -160,11 +160,11 @@ export class ProducerService implements IProducerService {
         }
         const executableCode = populateTemplate(
             language,
-            JSON.parse(templateCode.wrappedCode),
-            data.userCode,
+            JSON.parse(templateCode.runWrapperCode),
+            JSON.parse(data.userCode),
             data.testCases
         )
-         const jobPayload : IRunCodeExecJobPayload = {
+        const jobPayload : IRunCodeExecJobPayload = {
             ...data,
             tempId,
             executableCode,

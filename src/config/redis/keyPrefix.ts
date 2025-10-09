@@ -12,5 +12,5 @@ export const REDIS_PREFIX = {
     KAFKA_IDEMPOTENCY_KEY_CUSTOM_CODE : 'processed:custom_code',
     THROTTLE_KEY : 'throttle:user',
 
-    PROBLEM_DETAILS : 'problem:details'
+    CODE_MANAGE_PROBLEM_DETAILS : 'codemanage:problem:details'
 } as const

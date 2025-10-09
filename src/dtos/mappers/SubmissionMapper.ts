@@ -14,7 +14,6 @@ export class SubmissionMapper {
         data : SubmitCodeExecRequest, 
         addons : {title : string, difficulty : GrpcDifficultyEnum} 
     ) : ICreateSubmissionRequestDTO {
-        console.log(data)
         return {
             problemId : data.problemId,
             userCode : data.userCode,
