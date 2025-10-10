@@ -19,12 +19,12 @@ import { config } from "@/config";
 import { ICustomCodeExecJobPayload, IRunCodeExecJobPayload, ISubmissionExecJobPayload } from "@/libs/kafka/interfaces/jobPayload.interface";
 import { populateTemplate } from "@/utils/populateTemplate";
 import { randomUUID } from "node:crypto";
+import logger from '@/utils/pinoLogger'; // Import the logger
 
 /**
  * Class responsible for producing messages to Kafka topics.
  * Handles code submission, execution requests, and custom code execution.
- * 
- * @class
+ * * @class
  * @implements {IProducerService}
  */
 @injectable()
@@ -55,54 +55,81 @@ export class ProducerService implements IProducerService {
     }
 
     async submitCodeExec(data : SubmitCodeExecRequest) : Promise<ResponseDTO> {
+        const method = 'submitCodeExec';
+        logger.info(`[PRODUCER-SERVICE] ${method} started`, { problemId: data.problemId, userId: data.userId, language: data.language });
+        
         const language = Mapper.mapGrpcLanguageEnum(data.language)
+        
+        // 1. Code Sanitization
         const { isValid, error } = this.#_sanitizer.sanitize(data.userCode,language);
         if(!isValid){
+            logger.warn(`[PRODUCER-SERVICE] ${method} failed: Code sanitization failed.`, { problemId: data.problemId, userId: data.userId, error });
             return {
                 data : null,
                 success : false,
                 errorMessage : error
             }
         }
+        logger.debug(`[PRODUCER-SERVICE] ${method}: Code sanitized successfully.`);
+
+        // 2. Problem Detail Retrieval (with Cache)
         let problem : Problem | null = null;
         const cachKey = `${REDIS_PREFIX.CODE_MANAGE_PROBLEM_DETAILS}:${data.problemId}`;
         const cached = await this.#_cacheProvider.get(cachKey);
+        
         if(cached){
             problem = cached as Problem;
+            logger.debug(`[PRODUCER-SERVICE] ${method}: Problem details cache hit.`, { problemId: data.problemId });
         }else{
+            logger.debug(`[PRODUCER-SERVICE] ${method}: Problem details cache miss. Fetching via gRPC.`, { problemId: data.problemId });
             problem = await this.#_problemGrpcClient.getProblem({ Id : data.problemId });
             if(problem){
                 await this.#_cacheProvider.set(cachKey, problem, config.PROBLEM_DETAILS_CACHE_EXPIRY);
+                logger.debug(`[PRODUCER-SERVICE] ${method}: Problem details fetched and cached.`, { problemId: data.problemId });
             }
         }
+        
         if(!problem || 
-            !problem.testcaseCollection){
+            !problem.testcaseCollection ||
+            !problem.testcaseCollection.submit ||
+            problem.testcaseCollection.submit.length === 0){
+            logger.warn(`[PRODUCER-SERVICE] ${method} failed: Problem or test cases not found/available.`, { problemId: data.problemId });
             return {
                 data : null,
                 success : false,
                 errorMessage : ProblemErrorType.ProblemNotFound
             }
         }
-        const submission = await this.#_problemGrpcClient.createSubmission(
-            SubmissionMapper.toCreateSubmissionDTO(
-                data, 
-                { title : problem.title, difficulty : problem.difficulty }
-            )
-        );
+
+        // 3. Create Submission via gRPC
+        const createSubmissionData = SubmissionMapper.toCreateSubmissionDTO(
+            data, 
+            { title : problem.title, difficulty : problem.difficulty }
+        )
+        const submission = await this.#_problemGrpcClient.createSubmission(createSubmissionData);
+        logger.info(`[PRODUCER-SERVICE] ${method}: Submission created via gRPC.`, { submissionId: submission.Id });
+        
+        // 4. Check Template Code
         const templateCode = problem.templateCodes.find(t=>t.language === data.language);
         if(!templateCode || !templateCode.submitWrapperCode){
+            logger.warn(`[PRODUCER-SERVICE] ${method} failed: Submission template code not found for language: ${data.language}.`, { problemId: data.problemId });
             return {
                 data : null,
                 success : false,
                 errorMessage : ProblemErrorType.ProblemNotFound
             }
         }
+
+        // 5. Populate Template
         const executableCode = populateTemplate(
             language,
             JSON.parse(templateCode.submitWrapperCode),
             JSON.parse(data.userCode),
             problem.testcaseCollection.submit
         )
+        logger.debug(`[PRODUCER-SERVICE] ${method}: Executable code template populated.`);
+
+        // 6. Produce Kafka Message
         const jobPayload : ISubmissionExecJobPayload = {
             submissionId : submission.Id,
             executableCode,
@@ -115,6 +142,8 @@ export class ProducerService implements IProducerService {
             jobPayload.submissionId,
             jobPayload
         );
+        logger.info(`[PRODUCER-SERVICE] ${method} completed successfully. Message produced to ${KafkaTopics.SUBMISSION_JOBS}`, { submissionId: submission.Id });
+
         return {
             data : { submissionId : submission.Id },
             success : true
@@ -122,48 +151,70 @@ export class ProducerService implements IProducerService {
     }
 
     async runCodeExec(data : IRunCodeExecRequestDTO) : Promise<ResponseDTO> {
+        const method = 'runCodeExec';
         const language = Mapper.mapGrpcLanguageEnum(data.language);
         const tempId = randomUUID();
+        logger.info(`[PRODUCER-SERVICE] ${method} started`, { problemId: data.problemId, tempId, language: data.language });
+        
+        // 1. Code Sanitization
         const { isValid, error } = this.#_sanitizer.sanitize(data.userCode,language);
         if(!isValid){
+            logger.warn(`[PRODUCER-SERVICE] ${method} failed: Code sanitization failed.`, { problemId: data.problemId, tempId, error });
             return {
                 data : null,
                 success : false,
                 errorMessage : error
             }
         }
+        logger.debug(`[PRODUCER-SERVICE] ${method}: Code sanitized successfully.`);
+
+        // 2. Problem Detail Retrieval (with Cache)
         let problem : Problem | null = null;
         const cachKey = `${REDIS_PREFIX.CODE_MANAGE_PROBLEM_DETAILS}:${data.problemId}`;
         const cached = await this.#_cacheProvider.get(cachKey);
+        
         if(cached){
             problem = cached as Problem | null ;
+            logger.debug(`[PRODUCER-SERVICE] ${method}: Problem details cache hit.`, { problemId: data.problemId });
         }else{
+            logger.debug(`[PRODUCER-SERVICE] ${method}: Problem details cache miss. Fetching via gRPC.`, { problemId: data.problemId });
             problem = await this.#_problemGrpcClient.getProblem({ Id : data.problemId });
             if(problem){
                 await this.#_cacheProvider.set(cachKey, problem, config.PROBLEM_DETAILS_CACHE_EXPIRY);
+                logger.debug(`[PRODUCER-SERVICE] ${method}: Problem details fetched and cached.`, { problemId: data.problemId });
             }
         }
+        
         if(!problem){
+            logger.warn(`[PRODUCER-SERVICE] ${method} failed: Problem not found.`, { problemId: data.problemId });
             return {
                 data : null,
                 success : false,
                 errorMessage : ProblemErrorType.ProblemNotFound
             }
         }
+        
+        // 3. Check Template Code
         const templateCode = problem.templateCodes.find(t=>t.language === data.language);
         if(!templateCode || !templateCode.runWrapperCode){
+            logger.warn(`[PRODUCER-SERVICE] ${method} failed: Run template code not found for language: ${data.language}.`, { problemId: data.problemId });
             return {
                 data : null,
                 success : false,
                 errorMessage : ProblemErrorType.ProblemNotFound
             }
         }
+        
+        // 4. Populate Template
         const executableCode = populateTemplate(
             language,
             JSON.parse(templateCode.runWrapperCode),
             JSON.parse(data.userCode),
             data.testCases
         )
+        logger.debug(`[PRODUCER-SERVICE] ${method}: Executable code template populated.`);
+
+        // 5. Produce Kafka Message
         const jobPayload : IRunCodeExecJobPayload = {
             ...data,
             tempId,
@@ -175,6 +226,8 @@ export class ProducerService implements IProducerService {
             tempId,
             jobPayload
         );
+        logger.info(`[PRODUCER-SERVICE] ${method} completed successfully. Message produced to ${KafkaTopics.RUN_JOBS}`, { tempId });
+
         return {
             data : {tempId},
             success : true
@@ -182,16 +235,24 @@ export class ProducerService implements IProducerService {
     }
 
     async customCodeExec(data : ICustomCodeExecRequestDTO) : Promise<ResponseDTO> {
+        const method = 'customCodeExec';
         const language = Mapper.mapGrpcLanguageEnum(data.language);
         const tempId = randomUUID();
+        logger.info(`[PRODUCER-SERVICE] ${method} started`, { tempId, language: data.language });
+        
+        // 1. Code Sanitization
         const { isValid, error } = this.#_sanitizer.sanitize(data.userCode,language);
         if(!isValid){
+            logger.warn(`[PRODUCER-SERVICE] ${method} failed: Code sanitization failed.`, { tempId, error });
             return {
                 data : null,
                 success : false,
                 errorMessage : error
             }
         }
+        logger.debug(`[PRODUCER-SERVICE] ${method}: Code sanitized successfully.`);
+
+        // 2. Produce Kafka Message
         const jobPayload : ICustomCodeExecJobPayload = {
             language,
             tempId,
@@ -202,6 +263,8 @@ export class ProducerService implements IProducerService {
             tempId,
             jobPayload
         );
+        logger.info(`[PRODUCER-SERVICE] ${method} completed successfully. Message produced to ${KafkaTopics.CUSTOM_JOBS}`, { tempId });
+        
         return {
             data : {tempId},
             success : true,
