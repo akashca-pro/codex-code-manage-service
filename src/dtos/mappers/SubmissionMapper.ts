@@ -18,6 +18,7 @@ export class SubmissionMapper {
             problemId : data.problemId,
             userCode : data.userCode,
             userId : data.userId,
+            username : data.username,
             country : data.country ? data.country : undefined,
             language : data.language,
             title : addons.title,

@@ -2,65 +2,93 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-grpc';
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import {
-  PeriodicExportingMetricReader,
-} from '@opentelemetry/sdk-metrics';
-import { resourceFromAttributes } from '@opentelemetry/resources'
+import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
+import { resourceFromAttributes } from '@opentelemetry/resources';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
+import { diag, DiagConsoleLogger, DiagLogLevel } from '@opentelemetry/api';
+import * as grpc from '@grpc/grpc-js';
 import { config } from '.';
 import logger from '@/utils/pinoLogger';
-import dotenv from 'dotenv'
+import dotenv from 'dotenv';
+
 dotenv.config();
+diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
 
-const serviceName = process.env.OTEL_SERVICE_NAME || config.SERVICE_NAME
-const otelCollectorEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'otel-collector.observability.svc.cluster.local:4317';
+const serviceName = process.env.OTEL_SERVICE_NAME || config.SERVICE_NAME;
+const otelCollectorEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 
-const resource = resourceFromAttributes({
+let sdk: NodeSDK | undefined;
+
+if (!otelCollectorEndpoint) {
+  logger.info('OTEL_EXPORTER_OTLP_ENDPOINT not set, skipping OpenTelemetry initialization.');
+} else {
+  logger.info(`Initializing OpenTelemetry for service: ${serviceName}`);
+  logger.info(`OTLP Collector endpoint: ${otelCollectorEndpoint}`);
+
+  const resource = resourceFromAttributes({
     [ATTR_SERVICE_NAME]: serviceName,
-})
+  });
 
-// --- Exporter Configuration ---
-// Note: We use the same endpoint for all three signals.
-// The '/v1/traces', '/v1/metrics', '/v1/logs' paths are appended automatically by the exporters.
-const traceExporter = new OTLPTraceExporter({
-  url: otelCollectorEndpoint,
-});
+  const grpcCredentials = grpc.credentials.createInsecure();
 
-const metricExporter = new OTLPMetricExporter({
-  url: otelCollectorEndpoint,
-});
+  const traceExporter = new OTLPTraceExporter({
+    url: otelCollectorEndpoint,
+    credentials: grpcCredentials,
+    timeoutMillis: 5000,
+  });
 
-const sdk = new NodeSDK({
-  resource,
-  traceExporter,
-  metricReader: new PeriodicExportingMetricReader({
-    exporter: metricExporter,
-    exportIntervalMillis: 10000, // Export metrics every 10 seconds
-  }),
-  instrumentations: [
-    getNodeAutoInstrumentations({
-        // Disable instrumentations that you don't need or that are too noisy.
+  const metricExporter = new OTLPMetricExporter({
+    url: otelCollectorEndpoint,
+    credentials: grpcCredentials,
+    timeoutMillis: 5000,
+  });
+
+  sdk = new NodeSDK({
+    resource,
+    traceExporter,
+    metricReader: new PeriodicExportingMetricReader({
+      exporter: metricExporter,
+      exportIntervalMillis: 10000,
+    }),
+    instrumentations: getNodeAutoInstrumentations({
       '@opentelemetry/instrumentation-fs': {
         enabled: false,
       },
+      '@opentelemetry/instrumentation-grpc': { 
+        enabled: true 
+      },
+      '@opentelemetry/instrumentation-ioredis': {
+        enabled: true
+      },
+      '@opentelemetry/instrumentation-redis': {
+        enabled: true
+      },
+      '@opentelemetry/instrumentation-pino': {
+        enabled: true
+      },
+      '@opentelemetry/instrumentation-kafkajs' : {enabled : true}
     }),
-  ],
-});
+  });
 
-// Gracefully shut down the SDK on process exit
-process.on('SIGTERM', () => {
-  sdk.shutdown()
-    .then(() => console.log('Tracing terminated'))
-    .catch((error) => console.log('Error terminating tracing', error))
-    .finally(() => process.exit(0));
-});
+  const shutdown = async () => {
+    logger.info('Shutting down OpenTelemetry SDK...');
+    try {
+      await sdk?.shutdown();
+      logger.info('OpenTelemetry SDK terminated successfully');
+    } catch (error) {
+      logger.error('Error terminating OpenTelemetry SDK:', error);
+    }
+  };
 
-// Start the SDK
-try {
-  sdk.start();
-  logger.info(`OpenTelemetry tracing initialized for service: ${serviceName}`);
-} catch (error) {
-  logger.info('Error initializing OpenTelemetry tracing', error);
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+
+  try {
+    sdk.start();
+    logger.info('OpenTelemetry SDK started successfully');
+  } catch (error) {
+    logger.error('Error starting OpenTelemetry SDK:', error);
+  }
 }
 
 export default sdk;
