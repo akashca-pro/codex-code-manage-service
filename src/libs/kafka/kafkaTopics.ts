@@ -1,5 +1,5 @@
 
-export const NatsStreams = {
+export const KafkaTopics = {
 
     SUBMISSION_JOBS : 'SUBMISSION_JOBS',
     SUBMISSION_RESULTS : 'SUBMISSION_RESULTS',
@@ -9,5 +9,8 @@ export const NatsStreams = {
 
     CUSTOM_JOBS : 'CUSTOM_JOBS',
     CUSTOM_RESULTS : 'CUSTOM_RESULTS',
+
+    RETRY_QUEUE : 'RETRY_QUEUE',
+    DLQ_QUEUE : 'DLQ_QUEUE',
 
 } as const

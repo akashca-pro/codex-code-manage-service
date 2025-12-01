@@ -11,7 +11,6 @@ import {
  */
 export interface IRunCodeExecRequestDTO {
     problemId : string;
-    userId : string;
     language : GrpcLanguageEnum
     userCode : string;
     testCases : TestCase[];

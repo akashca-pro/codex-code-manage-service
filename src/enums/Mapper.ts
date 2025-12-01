@@ -11,9 +11,8 @@ export class Mapper {
             return Language.JAVASCRIPT;
         } else if (language === 2){
             return Language.PYTHON
-        } else {
-            throw new Error('Invalid choosen language')
-        }
+        } else if (language === 3) {
+            return Language.GO
+        } else throw new Error('Invalid language')
     }
-
 }

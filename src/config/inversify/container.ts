@@ -3,72 +3,53 @@ import { Container } from "inversify";
 import TYPES from './types'
 import { IGrpcProblemService } from '@/infra/grpc/ProblemService.interface';
 import { GrpcProblemService } from '@/infra/grpc/ProblemServices';
-import { IMessageProvider } from '@/providers/messageProvider/IMessageProvider.interface';
-import { NatsMessageProvider } from '../../providers/messageProvider/NatsMessageProvider';
-import { ISubmitCodeExecPublisherService } from '@/services/interface/submitCodeExecPublisher.service.interface';
-import { SubmitCodeExecPublisherService } from '@/services/submitCodeExecPublisher.service';
-import { ICacheProvider } from '@/providers/cacheProvider/ICacheProvider.interface';
-import { RedisCacheProvider } from '@/providers/cacheProvider/RedisCacheProvider';
-import { SubmitCodeExecListener } from '@/services/submitCodeExecListener.service';
-import { IRunCodeExecPublisherService } from '@/services/interface/runCodeExecPublisher.service.interface';
-import { RunCodeExecPublisherService } from '@/services/runCodeExecPublisher.service';
-import { IRunCodeExecListenerService } from '@/services/interface/runCodeExecListener.service.interface';
-import { RunCodeExecListenerService } from '@/services/runCodeExecListener.service';
-import { ISubmitCodeExecListenerService } from '@/services/interface/submitCodeExecListener.service.interface';
-import { ICustomCodeExecPublisherService } from '@/services/interface/customCodeExecPublisher.service.interface';
-import { CustomCodeExecPublishService } from '@/services/customCodeExecPublisher.service';
-import { ICustomCodeExecListenerService } from '@/services/interface/customCodeExecListener.service.interface';
-import { CustomCodeExecListenerService } from '@/services/customCodeExecListener.service';
-import { GrpcCustomCodeExecHandler } from '@/transport/grpc/handlers/CustomCodeExecHandler';
-import { GrpcRunCodeExecHandler } from '@/transport/grpc/handlers/RunCodeExecHandler';
-import { GrpcSubmitCodeExecHandler } from '@/transport/grpc/handlers/SubmitCodeExecHandler';
+import { ICacheProvider } from '@/providers/ICacheProvider.interface';
+import { RedisCacheProvider } from '@/providers/RedisCacheProvider';
+import { KafkaManager } from '@/libs/kafka/kafkaManager';
+import { CodeSanitizer } from '@/utils/codeSanitize';
+import { IProducerService } from '@/services/interface/producer.service.interface';
+import { ProducerService } from '@/services/producer.service';
+import { IConsumerService } from '@/services/interface/consumer.service.interface';
+import { ConsumerService } from '@/services/consumer.service';
+import { CodeManageHandler } from '@/transport/grpc/codeManage.handler';
 
 const container = new Container();
 
 // Grpc client.
 container
     .bind<IGrpcProblemService>(TYPES.IGrpcProblemService)
-    .to(GrpcProblemService);
+    .to(GrpcProblemService)
+    .inSingletonScope();
 
 // Providers
 container
-    .bind<IMessageProvider>(TYPES.IMessageProvider)
-    .to(NatsMessageProvider);
-container
     .bind<ICacheProvider>(TYPES.ICacheProvider)
-    .to(RedisCacheProvider);
+    .to(RedisCacheProvider)
+    .inSingletonScope();
+container
+    .bind<KafkaManager>(TYPES.KafkaManager)
+    .toConstantValue(KafkaManager.getInstance());
+container
+    .bind<CodeSanitizer>(TYPES.CodeSanitizer)
+    .to(CodeSanitizer)
+    .inSingletonScope();
 
-// Publisher services
-container   
-    .bind<ISubmitCodeExecPublisherService>(TYPES.ISubmitCodeExecPublisherService)
-    .to(SubmitCodeExecPublisherService);
+// Producer service
 container
-    .bind<IRunCodeExecPublisherService>(TYPES.IRunCodeExecPublisherService)
-    .to(RunCodeExecPublisherService);
-container
-    .bind<ICustomCodeExecPublisherService>(TYPES.ICustomCodeExecPublisherService)
-    .to(CustomCodeExecPublishService);
+    .bind<IProducerService>(TYPES.IProducerService)
+    .to(ProducerService)
+    .inSingletonScope();
 
-// Listener services
+// Listener service
 container
-    .bind<ISubmitCodeExecListenerService>(TYPES.ISubmitCodeExecListenerService)
-    .to(SubmitCodeExecListener);
-container
-    .bind<IRunCodeExecListenerService>(TYPES.IRunCodeExecListenerService)
-    .to(RunCodeExecListenerService);
-container
-    .bind<ICustomCodeExecListenerService>(TYPES.ICustomCodeExecListenerService)
-    .to(CustomCodeExecListenerService);
+    .bind<IConsumerService>(TYPES.IConsumerService)
+    .to(ConsumerService)
+    .inSingletonScope();
 
-// Grpc server handlers
+// Grpc server handler
 container
-    .bind<GrpcSubmitCodeExecHandler>(TYPES.GrpcSubmitCodeExecHandler)
-    .to(GrpcSubmitCodeExecHandler);
-container
-    .bind<GrpcRunCodeExecHandler>(TYPES.GrpcRunCodeExecHandler)
-    .to(GrpcRunCodeExecHandler);
-container
-    .bind<GrpcCustomCodeExecHandler>(TYPES.GrpcCustomCodeExecHandler)
-    .to(GrpcCustomCodeExecHandler);
+    .bind<CodeManageHandler>(TYPES.CodeManageHandler)
+    .to(CodeManageHandler)
+    .inSingletonScope();
 
 export default container

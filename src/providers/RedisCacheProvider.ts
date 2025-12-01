@@ -1,11 +1,12 @@
 import redis from "@/config/redis";
+import { ICacheProvider } from "./ICacheProvider.interface";
 
 /**
  * Redis Cache Provider.
  * 
  * @class
  */
-export class RedisCacheProvider {
+export class RedisCacheProvider implements ICacheProvider {
 
     readonly #_redis = redis
 
